@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Template. install-launchd.sh rewrites the paths and copies this to ~/Library/LaunchAgents/.
+     Don't edit the copy in ~/Library/LaunchAgents directly — edit here and re-run install-launchd.sh. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.davidmarsh.ralph</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__RALPH_DIR__/ralph.sh</string>
+  </array>
+
+  <!-- Run at 01:00 daily. Mac must be awake — see the pmset hint printed by install-launchd.sh. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>1</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+
+  <key>WorkingDirectory</key>
+  <string>__RALPH_DIR__</string>
+
+  <key>StandardOutPath</key>
+  <string>__RALPH_DIR__/reports/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__RALPH_DIR__/reports/launchd.err.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

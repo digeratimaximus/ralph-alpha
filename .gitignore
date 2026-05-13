@@ -1,0 +1,13 @@
+# local config — never commit
+ralph.env
+*.local.env
+
+# run artifacts
+reports/*
+!reports/.gitkeep
+
+# the kill switch is intentionally transient
+PAUSE
+
+# os cruft
+.DS_Store
