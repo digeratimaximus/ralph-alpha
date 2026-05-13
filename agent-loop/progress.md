@@ -33,3 +33,14 @@ denied) and `--max-budget-usd $MAX_BUDGET_USD` (per-iteration API spend cap, def
 Item 2 from the backlog. Wrote `specs/system-launchd-install.md`. The `install-launchd.sh` and
 `com.davidmarsh.ralph.plist` are already scaffolded and functional; the spec defines what hardening
 and `--self-test` assertions are needed to trust them. Updated `specs/README.md` to link the spec.
+
+## 2026-05-13 — spec: morning report (MODE=spec, Ralph loop)
+
+Item 3 from the backlog. Wrote `specs/feature-morning-report.md`. All changes will land in `ralph.sh`
+only — no new files. Key decisions: capture claude stderr for cost via temp file; diff stat is gated on
+`git rev-parse HEAD~1` to survive an initial commit; unapproved-spec list is computed by diffing
+`specs/*.md` against `specs/approved.txt`. Updated `specs/README.md` to link the spec.
+
+Watch-outs for implementation: stderr redirection on the `claude -p` call needs care — the current
+invocation pipes stdin and captures nothing from stderr; implementation will need `2>$tmpfile` while
+keeping stdout live to the terminal/report.
