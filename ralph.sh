@@ -172,6 +172,11 @@ for i in $(seq 1 "$MAX_ITERS"); do
           log "gh not installed — branch $cur pushed; open the PR manually"
         fi
       fi
+      # spec-mode: the agent commits draft specs to main; push them so they're reviewable.
+      if [ "$MODE" = "spec" ] && [ "$cur" = "$MAIN_BRANCH" ]; then
+        git -C "$REPO" push "$REMOTE" "$MAIN_BRANCH" >>"$REPORT" 2>&1 \
+          && log "pushed spec commit(s) to $REMOTE/$MAIN_BRANCH" || log "warn: push of $MAIN_BRANCH failed"
+      fi
     else
       log "iter $i — back-pressure FAILED; resetting to $TAG"
       git -C "$REPO" reset --hard "$TAG" >/dev/null 2>&1 || true
