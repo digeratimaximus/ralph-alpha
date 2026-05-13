@@ -22,7 +22,7 @@ fi
 [ -f "$HERE/ralph.env" ] || echo "note: $HERE/ralph.env not found yet — copy ralph.env.example to ralph.env before the first scheduled run."
 
 mkdir -p "$HOME/Library/LaunchAgents" "$HERE/reports"
-sed "s#__RALPH_DIR__#${HERE}#g" "$SRC" > "$DEST"
+sed -e "s#__RALPH_DIR__#${HERE}#g" -e "s#__HOME__#${HOME}#g" "$SRC" > "$DEST"
 
 # (re)load
 launchctl bootout "gui/$(id -u)/${LABEL}" 2>/dev/null || launchctl unload "$DEST" 2>/dev/null || true

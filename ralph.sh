@@ -65,6 +65,14 @@ source "$ENV_FILE"
 
 case "$MODE" in spec|implement) ;; *) echo "MODE must be spec|implement, got '$MODE'" >&2; exit 2 ;; esac
 
+# Resolve the claude CLI — launchd's PATH may not include ~/.local/bin. Override with CLAUDE_BIN in the env if needed.
+: "${CLAUDE_BIN:=}"
+if [ -z "$CLAUDE_BIN" ]; then
+  if command -v claude >/dev/null 2>&1; then CLAUDE_BIN="$(command -v claude)"
+  elif [ -x "$HOME/.local/bin/claude" ]; then CLAUDE_BIN="$HOME/.local/bin/claude"
+  else echo "cannot find the 'claude' CLI — set CLAUDE_BIN in $ENV_FILE" >&2; exit 2; fi
+fi
+
 TS="$(date +%Y%m%d-%H%M%S)"
 REPORT="$HERE/reports/${TS}-$(basename "$REPO")-${MODE}.md"
 PROGRESS="$REPO/agent-loop/progress.md"
@@ -117,7 +125,7 @@ run_claude() {
     log "[dry-run] iter $n: would run: claude -p (PROMPT.md) --model $MODEL --permission-mode acceptEdits --allowed-tools '$ALLOWED' --max-budget-usd $MAX_BUDGET_USD"
     return 0
   fi
-  printf '%s\n' "$PROMPT_BODY" | claude -p \
+  printf '%s\n' "$PROMPT_BODY" | "$CLAUDE_BIN" -p \
     --model "$MODEL" \
     --append-system-prompt "$SYS_EXTRA" \
     --permission-mode acceptEdits \
