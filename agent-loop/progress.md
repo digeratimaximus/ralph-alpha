@@ -27,3 +27,9 @@ denied) and `--max-budget-usd $MAX_BUDGET_USD` (per-iteration API spend cap, def
 `ralph.env.example`). Switched `--allowedTools` → `--allowed-tools` with space-separated permission-syntax patterns.
 `gh` is now authenticated as `digeratimaximus` and the repo is pushed to `origin/main`. Covers spec
 `feature-self-build.md` task "Audit & fix `claude -p` flags". `--self-test` and `--dry-run` still pass.
+
+## 2026-05-12 — spec: launchd install (MODE=spec, Ralph loop)
+
+Item 2 from the backlog. Wrote `specs/system-launchd-install.md`. The `install-launchd.sh` and
+`com.davidmarsh.ralph.plist` are already scaffolded and functional; the spec defines what hardening
+and `--self-test` assertions are needed to trust them. Updated `specs/README.md` to link the spec.
