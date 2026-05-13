@@ -34,7 +34,7 @@ Extend `./ralph.sh --self-test` with the assertions above. Add a `--dry-run` smo
 - A scratch run with a stub "claude" on PATH that just `exit 1`s shows the rollback + failure-count + early stop behavior.
 
 ## Progress
-- [ ] Audit & fix `claude -p` flags
+- [x] Audit & fix `claude -p` flags  — done 2026-05-12 (removed nonexistent `--max-turns`; added `--permission-mode acceptEdits`, `--max-budget-usd`; `--allowedTools`→`--allowed-tools`)
 - [ ] Flesh out `--self-test` assertions
 - [ ] Make `--dry-run` fully side-effect-free and accurate
 - [ ] Verify rollback + failure-count + MAX_CONSEC_FAILURES with a stub claude

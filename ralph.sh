@@ -58,6 +58,7 @@ source "$ENV_FILE"
 : "${MAX_ITERS:=1}"
 : "${MAX_CONSEC_FAILURES:=2}"
 : "${TIME_BUDGET_SECONDS:=10800}"
+: "${MAX_BUDGET_USD:=5}"
 : "${TEST_CMD:?TEST_CMD not set in env}"
 : "${REMOTE:=origin}"
 : "${MAIN_BRANCH:=main}"
@@ -105,21 +106,23 @@ SYS_EXTRA="MODE=$MODE. This is one iteration of a Ralph loop. Do EXACTLY ONE bac
 do not start a second item. Read agent-loop/METHOD.md and specs/README.md and agent-loop/progress.md first. \
 Before concluding code does not exist, grep for it. No placeholder implementations."
 
-ALLOWED='Read,Edit,Write,Grep,Glob,Bash(git*),Bash(./ralph.sh*),Bash(shellcheck*),Bash(bash -n*)'
-# implement-mode also needs whatever TEST_CMD invokes; TEST_CMD is run by THIS script, not the agent,
-# but the agent may want to run it itself before declaring done — allow ./ralph.sh which covers --self-test.
+# Tool allowlist for the agent. Space-separated, Claude Code permission syntax.
+# Edits are auto-accepted (--permission-mode acceptEdits); these cover the Bash commands an iteration needs.
+# Anything not listed gets denied — that's the guardrail; the iteration adapts or fails and is rolled back.
+ALLOWED='Read Edit Write Grep Glob Bash(git *) Bash(./ralph.sh *) Bash(shellcheck *) Bash(bash -n *) Bash(ls *) Bash(cat *) Bash(rg *) Bash(gh pr *)'
 
 run_claude() {
   local n="$1"
   if [ "$DRY_RUN" -eq 1 ]; then
-    log "[dry-run] iter $n: would run: claude -p (PROMPT.md) --model $MODEL --allowedTools '$ALLOWED' --max-turns 200"
+    log "[dry-run] iter $n: would run: claude -p (PROMPT.md) --model $MODEL --permission-mode acceptEdits --allowed-tools '$ALLOWED' --max-budget-usd $MAX_BUDGET_USD"
     return 0
   fi
   printf '%s\n' "$PROMPT_BODY" | claude -p \
     --model "$MODEL" \
     --append-system-prompt "$SYS_EXTRA" \
-    --allowedTools "$ALLOWED" \
-    --max-turns 200
+    --permission-mode acceptEdits \
+    --allowed-tools "$ALLOWED" \
+    --max-budget-usd "$MAX_BUDGET_USD"
 }
 
 # ---------------------------------------------------------------------------

@@ -16,6 +16,14 @@ is empty — nothing is cleared for implement-mode yet. Next: run `./ralph.sh --
 real `MODE=spec` run to draft the first specs, then a human reviews them.
 
 Watch-outs for future iterations:
-- `claude -p` flag names (`--allowedTools`, `--append-system-prompt`, `--max-turns`, `--model`) — verify against the installed Claude Code version; adjust `run_claude()` in `ralph.sh` if they've changed.
-- `gh` may not be authenticated on this machine yet — implement-mode pushes the branch regardless, but PR creation will warn and you'll open the PR by hand until `gh auth login` is done.
 - launchd jobs don't run while the Mac is asleep — `install-launchd.sh` prints the `pmset` hint; actually run it.
+- `--allowed-tools` patterns use Claude Code permission syntax (`Bash(git *)` etc.); if an iteration keeps failing because it can't run a command it needs, widen `ALLOWED` in `ralph.sh` (deliberately narrow for now).
+
+## 2026-05-12 — flag audit (human + Claude, by hand)
+
+Audited `run_claude()` against installed Claude Code `2.1.140`. Findings: there is **no `--max-turns`** flag in
+this version — removed it. Added `--permission-mode acceptEdits` (auto-accept edits; non-allowlisted Bash still
+denied) and `--max-budget-usd $MAX_BUDGET_USD` (per-iteration API spend cap, default $5; new `MAX_BUDGET_USD` in
+`ralph.env.example`). Switched `--allowedTools` → `--allowed-tools` with space-separated permission-syntax patterns.
+`gh` is now authenticated as `digeratimaximus` and the repo is pushed to `origin/main`. Covers spec
+`feature-self-build.md` task "Audit & fix `claude -p` flags". `--self-test` and `--dry-run` still pass.
