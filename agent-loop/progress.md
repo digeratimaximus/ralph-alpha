@@ -44,3 +44,18 @@ only — no new files. Key decisions: capture claude stderr for cost via temp fi
 Watch-outs for implementation: stderr redirection on the `claude -p` call needs care — the current
 invocation pipes stdin and captures nothing from stderr; implementation will need `2>$tmpfile` while
 keeping stdout live to the terminal/report.
+
+## 2026-05-14 — spec: cost tracking (MODE=spec, Ralph loop)
+
+Item 4 from the backlog. Wrote `specs/system-cost-tracking.md`. Key design decision: use
+`--output-format stream-json` rather than capturing stderr — stream-json emits one JSON event per
+line including a final `result` event with `cost_usd`, while keeping output live. Implementation
+will tee stdout to a temp log, parse cost with jq after the iteration, and append a run entry to
+`state.json`. New `COST_CEILING_USD` env var (default 20.0) checked before each iteration to stop
+the session if cumulative spend exceeds the ceiling. Updated `specs/README.md` to link the spec.
+
+Watch-outs for implementation:
+- `--output-format stream-json` changes the output format; verify the morning report's report
+  capture still works correctly (may need to strip JSON envelope when writing to the report file).
+- Session cost gate sums runs from state.json by today's date prefix — if a run spans midnight
+  the prefix check will miss earlier runs; acceptable limitation for a nightly job.
