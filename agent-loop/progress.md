@@ -59,3 +59,18 @@ Watch-outs for implementation:
   capture still works correctly (may need to strip JSON envelope when writing to the report file).
 - Session cost gate sums runs from state.json by today's date prefix — if a run spans midnight
   the prefix check will miss earlier runs; acceptable limitation for a nightly job.
+
+## 2026-05-15 — spec: multi-project support (MODE=spec, Ralph loop)
+
+Item 5 from the backlog. Wrote `specs/system-multi-project.md`. Key design: extract the current
+single-env run body into a `run_project()` function, add `--projects-dir <dir>` flag that iterates
+over `*.env` files in that directory (skipping `*.disabled`). Shared `DEADLINE` across all projects.
+Each project already gets its own report via `basename "$REPO"` in the filename. Updated
+`specs/README.md` to link the spec.
+
+Watch-outs for implementation:
+- The refactor into `run_project()` touches the entire body of ralph.sh below "Load config" —
+  careful to keep all variable references correct (DEADLINE, REPORT, etc.) when they move into a
+  function scope vs top-level scope.
+- `--dry-run` and `--self-test` flags both need to work correctly when `--projects-dir` is set;
+  verify each combination in the Verification steps.
