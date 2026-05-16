@@ -10,7 +10,7 @@ A spec file in `specs/` means the item has been specced; the filename appearing 
 | 3 | **Morning report**: richer `reports/<ts>-<repo>-<mode>.md` — diff stat per iteration, list of new draft specs awaiting approval, cost estimate, link to PRs | feature | `feature-morning-report.md` | draft spec |
 | 4 | **Cost tracking**: parse `claude -p` usage output (or `--output-format json`) and append a real `cost_estimate_usd` to `agent-loop/state.json`; abort the night if a running total exceeds `COST_CEILING_USD` | system | `system-cost-tracking.md` | draft spec |
 | 5 | **Multi-project support**: `projects.d/*.env`; `ralph.sh` iterates enabled project envs sequentially; per-project reports | system | `system-multi-project.md` | draft spec |
-| 6 | **PROMPT.md regression harness**: a way to replay a fixed repo state through one iteration and assert the agent picked the right item / didn't touch `main` / produced a spec in the right format | feature | — | not specced |
+| 6 | **PROMPT.md regression harness**: a way to replay a fixed repo state through one iteration and assert the agent picked the right item / didn't touch `main` / produced a spec in the right format | feature | `feature-regression-harness.md` | draft spec |
 | 7 | **Notification**: on run completion, post the summary somewhere David sees it in the morning (file is fine; email/Slack optional) | feature | — | not specced |
 
 ## Notes

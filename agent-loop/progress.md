@@ -74,3 +74,20 @@ Watch-outs for implementation:
   function scope vs top-level scope.
 - `--dry-run` and `--self-test` flags both need to work correctly when `--projects-dir` is set;
   verify each combination in the Verification steps.
+
+## 2026-05-16 — spec: regression harness (MODE=spec, Ralph loop)
+
+Item 6 from the backlog. Wrote `specs/feature-regression-harness.md`. Key design: a
+`tests/regression/` directory with a setup script that builds a minimal fixture git repo and two
+stub-claude scripts (spec-mode and implement-mode variants). A new `--regression-test` flag in
+`ralph.sh` runs each stub-claude variant against the fixture repo and asserts invariants (spec
+committed to main, implement-mode landed on a branch not main). `--self-test` gains an assertion
+that `--regression-test` exits 0. Updated `specs/README.md` to link the spec.
+
+Watch-outs for implementation:
+- The stub-claude scripts read from stdin (the prompt piped by ralph.sh) — they must consume
+  stdin fully or ralph.sh's pipe will hang; use `cat >/dev/null` at the top.
+- Fixture repo teardown must happen even on failure so stale fixture state doesn't poison
+  subsequent runs; use a `trap` in the `--regression-test` block.
+- The fixture `ralph.env` must set `TEST_CMD=true` (not the real `./ralph.sh --self-test`)
+  to avoid recursive self-test invocations.
