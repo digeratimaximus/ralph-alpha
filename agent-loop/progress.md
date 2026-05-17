@@ -91,3 +91,18 @@ Watch-outs for implementation:
   subsequent runs; use a `trap` in the `--regression-test` block.
 - The fixture `ralph.env` must set `TEST_CMD=true` (not the real `./ralph.sh --self-test`)
   to avoid recursive self-test invocations.
+
+## 2026-05-17 — spec: run-completion notification (MODE=spec, Ralph loop)
+
+Item 7 from the backlog. Wrote `specs/feature-notification.md`. Design: a `notify_done()`
+helper in `ralph.sh` that calls `osascript` to post a macOS Notification Center alert with
+iteration count, failure count, cost estimate, and report path. Guard with `command -v
+osascript` so it silently no-ops on non-macOS. Updated `specs/README.md` to link the spec.
+
+Watch-outs for implementation:
+- The cost variable (`COST_EST`) may not exist until the cost-tracking feature lands;
+  use `${COST_EST:-?}` so the notification is still useful when cost capture is absent.
+- `osascript` strings need careful escaping — avoid double-quotes inside the message body
+  or escape them as `\"`.
+- This is the last unspecced backlog item. After this, all 7 items have draft specs;
+  the loop can be re-groomed or implementation can begin on approved items.
