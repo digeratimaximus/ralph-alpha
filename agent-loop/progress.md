@@ -92,6 +92,21 @@ Watch-outs for implementation:
 - The fixture `ralph.env` must set `TEST_CMD=true` (not the real `./ralph.sh --self-test`)
   to avoid recursive self-test invocations.
 
+## 2026-05-18 — spec: re-spec self-build as system-self-build.md (MODE=spec, Ralph loop)
+
+Item 1 from the backlog (re-spec). Wrote `specs/system-self-build.md` to replace the bootstrap
+draft `feature-self-build.md` with a proper `system-*` spec. The flags audit (2026-05-12) is marked
+done; remaining work is three groups of `--self-test` assertions covering dry-run side-effects,
+MAX_CONSEC_FAILURES early-stop (with a stub claude), and implement-mode push/PR tail. Updated
+`specs/README.md` to reference the new spec; `feature-self-build.md` is superseded but left in
+place (the loop never deletes files without explicit approval).
+
+Watch-outs for implementation:
+- The `MAX_CONSEC_FAILURES` stub-claude test needs a throwaway git repo and env file; tear it down
+  in a `trap` so stale state doesn't leak between self-test runs.
+- The implement-mode push assertion using `GIT_TRACE` captures verbose output — parse conservatively
+  (check for the branch name in the trace, not exact command format which may vary by git version).
+
 ## 2026-05-17 — spec: run-completion notification (MODE=spec, Ralph loop)
 
 Item 7 from the backlog. Wrote `specs/feature-notification.md`. Design: a `notify_done()`

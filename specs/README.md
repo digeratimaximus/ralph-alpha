@@ -5,7 +5,7 @@ A spec file in `specs/` means the item has been specced; the filename appearing 
 
 | # | Item | Track | Spec | Status |
 |---|---|---|---|---|
-| 1 | **Self-build**: implement `ralph.sh` (loop, tags, back-pressure, PR), `--self-test`, `--dry-run` to a working, lint-clean state | system | `system-... (tbd)` — partial draft exists as `feature-self-build.md`, re-spec properly | scaffolded, needs hardening |
+| 1 | **Self-build**: harden `ralph.sh` — `--self-test` covers real failure modes, `--dry-run` fully side-effect-free, rollback/failure-count verified, implement-mode push/PR tail confirmed | system | `system-self-build.md` | draft spec (supersedes `feature-self-build.md`) |
 | 2 | **launchd install**: `install-launchd.sh` writes + loads `~/Library/LaunchAgents/com.davidmarsh.ralph.plist`; prints `pmset` wake hint; supports `--uninstall` | system | `system-launchd-install.md` | draft spec |
 | 3 | **Morning report**: richer `reports/<ts>-<repo>-<mode>.md` — diff stat per iteration, list of new draft specs awaiting approval, cost estimate, link to PRs | feature | `feature-morning-report.md` | draft spec |
 | 4 | **Cost tracking**: parse `claude -p` usage output (or `--output-format json`) and append a real `cost_estimate_usd` to `agent-loop/state.json`; abort the night if a running total exceeds `COST_CEILING_USD` | system | `system-cost-tracking.md` | draft spec |
