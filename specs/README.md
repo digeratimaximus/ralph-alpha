@@ -15,6 +15,17 @@ A spec file in `specs/` means the item has been specced; the filename appearing 
 
 ## Notes
 
-- Items 1 is the bootstrap target — the loop should harden its own harness first.
+- Item 1 is the bootstrap target — the loop should harden its own harness first.
 - Don't reorder existing items without recording why in `agent-loop/progress.md`.
 - When this list grows unwieldy, an iteration in spec mode may re-groom it instead of adding a new spec.
+
+## Implementation order and dependencies
+
+All 7 specs are drafted (2026-05-19). None are yet approved. Suggested approval order:
+
+1. **Item 1 first** (`system-self-build.md`) — the back-pressure gate underpins everything else.
+2. **Item 4 before Item 3** (`system-cost-tracking.md` before `feature-morning-report.md`) — morning-report reads cost from `state.json` populated by cost-tracking; the cost line is omitted until cost-tracking lands.
+3. **Item 5 last** (`system-multi-project.md`) — refactors the entire body of `ralph.sh`; approve after items 1 and 4 are merged to minimise conflicts.
+4. **Items 2, 6, 7** are independent and can be approved in any order once item 1 is done.
+
+Conflict resolved (2026-05-19 re-groom): `feature-morning-report.md` previously described capturing cost via stderr grep, which conflicts with cost-tracking's `--output-format stream-json`. The morning-report spec now reads cost from `state.json` only.

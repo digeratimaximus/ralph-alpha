@@ -25,10 +25,15 @@ append `git diff --stat HEAD~1 HEAD 2>/dev/null || true` to the report. Guard wi
 `specs/README.md`) against the filenames in `specs/approved.txt`. Emit a markdown list
 of the unapproved ones under an `## Action required` heading.
 
-**Cost estimate** — `claude -p` prints a brief summary to stderr that includes
-`$ X.XXXX`. Capture stderr alongside stdout into a temp file, grep for the pattern,
-and write `cost_estimate_usd: $X.XXXX` to the report and to `agent-loop/state.json`
-under `{"runs": [..., {"ts": ..., "cost_usd": ...}]}`.
+**Cost figure** — read `cost_usd` for the current run from `agent-loop/state.json`
+(populated by the cost-tracking feature, `system-cost-tracking.md`). Write a
+`cost_usd: <value>` line to the report. If the field is absent (cost-tracking not
+yet implemented), omit the line — do **not** attempt independent stderr capture,
+which conflicts with cost-tracking's `--output-format stream-json` approach.
+
+*Dependency: `system-cost-tracking.md` should be implemented before this feature
+for the cost line to appear. The other three sections (diff stat, unapproved specs,
+PR links) are fully independent of cost-tracking.*
 
 **PR links** — when `gh pr create` succeeds, capture its stdout (the PR URL) and
 append it to the report under `## PRs opened`.
@@ -49,12 +54,12 @@ automated assertion for formatting, only for crash-free execution.
 3. After a real spec-mode run: open the report and confirm it contains:
    - A `## Diff` section per iteration with file counts.
    - An `## Action required` section listing unapproved specs (or "none").
-   - A `cost_estimate_usd` line.
+   - A `cost_usd` line (only if cost-tracking is also implemented).
    - A `## PRs opened` section (empty in spec-mode; populated in implement-mode).
 
 ## Progress
 - [ ] Per-iteration diff stat appended after back-pressure passes
 - [ ] Unapproved-specs list in wrap-up section
-- [ ] Cost capture from claude stderr → report + state.json
+- [ ] Cost line in report — read from state.json (requires system-cost-tracking)
 - [ ] PR URL capture from `gh pr create` stdout
 - [ ] `--self-test` and `--dry-run` still pass

@@ -121,3 +121,22 @@ Watch-outs for implementation:
   or escape them as `\"`.
 - This is the last unspecced backlog item. After this, all 7 items have draft specs;
   the loop can be re-groomed or implementation can begin on approved items.
+
+## 2026-05-19 — re-groom: fix morning-report/cost-tracking conflict (MODE=spec, Ralph loop)
+
+Backlog re-groom. All 7 specs were already drafted; this iteration fixed a design conflict
+and added implementation-order guidance.
+
+**Conflict fixed**: `feature-morning-report.md` previously described capturing cost via
+stderr grep (`$ X.XXXX`), which is mutually exclusive with cost-tracking's
+`--output-format stream-json` approach. The morning-report spec now reads cost from
+`agent-loop/state.json` (populated by cost-tracking) and explicitly states it must not
+attempt independent stderr capture. The `Progress` checkbox was updated to reflect this.
+
+**README.md additions**: added an "Implementation order and dependencies" section noting:
+- approve system-self-build first (back-pressure gate)
+- approve system-cost-tracking before feature-morning-report (cost data dependency)
+- approve system-multi-project last (full ralph.sh refactor, high conflict risk)
+- items 2, 6, 7 are independent
+
+No new spec created — the re-groom was the right call for this iteration.
