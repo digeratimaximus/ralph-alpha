@@ -140,3 +140,22 @@ attempt independent stderr capture. The `Progress` checkbox was updated to refle
 - items 2, 6, 7 are independent
 
 No new spec created — the re-groom was the right call for this iteration.
+
+## 2026-05-20 — spec: tool allowlist audit (MODE=spec, Ralph loop)
+
+All 7 existing backlog items already had draft specs. Found a genuine new item:
+`ALLOWED` in `ralph.sh` is missing `TodoWrite` (the Claude Code base system prompt tells every
+agent iteration to use it for task tracking — omitting it causes denied-tool errors for routine
+ops). Separately, `PROMPT.md` says "use sub-agents freely" but `Agent` is not in `ALLOWED` and
+shouldn't be (sub-agents bypass the allowlist, weakening the safety model).
+
+Wrote `specs/system-allowlist.md`. Inserted as new item 2 in `specs/README.md` (existing items
+2–7 renumbered to 3–8; recorded here as required). Updated the implementation-order notes to
+reflect 8 specs and the new dependency.
+
+Watch-outs for implementation:
+- The `ALLOWED` variable is a single-line string; append `TodoWrite` with a space separator.
+- Update the sub-agent sentence in `agent-loop/PROMPT.md` carefully — the existing wording is
+  in the "Always" section at the bottom; replace only that sentence, not the whole section.
+- The `--self-test` assertion uses grep on the `ralph.sh` source file itself — straightforward
+  but make sure the grep pattern is specific enough to not false-positive on a comment.
