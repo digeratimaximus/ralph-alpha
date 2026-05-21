@@ -13,6 +13,7 @@ A spec file in `specs/` means the item has been specced; the filename appearing 
 | 6 | **Multi-project support**: `projects.d/*.env`; `ralph.sh` iterates enabled project envs sequentially; per-project reports | system | `system-multi-project.md` | draft spec |
 | 7 | **PROMPT.md regression harness**: a way to replay a fixed repo state through one iteration and assert the agent picked the right item / didn't touch `main` / produced a spec in the right format | feature | `feature-regression-harness.md` | draft spec |
 | 8 | **Notification**: on run completion, post the summary somewhere David sees it in the morning (file is fine; email/Slack optional) | feature | `feature-notification.md` | draft spec |
+| 9 | **Tag pruning**: after each run, delete all but the most recent `TAG_KEEP` (default 20) `ralph-pre-iter-*` rollback tags to prevent indefinite accumulation | system | `system-tag-prune.md` | draft spec |
 
 ## Notes
 
@@ -22,11 +23,11 @@ A spec file in `specs/` means the item has been specced; the filename appearing 
 
 ## Implementation order and dependencies
 
-All 8 specs are drafted (2026-05-20). None are yet approved. Suggested approval order:
+All 9 specs are drafted (2026-05-21). None are yet approved. Suggested approval order:
 
 1. **Items 1 and 2 first** (`system-self-build.md`, `system-allowlist.md`) — the back-pressure gate and allowlist fix underpin everything else; do both before any implementation iterations run.
 2. **Item 5 before Item 4** (`system-cost-tracking.md` before `feature-morning-report.md`) — morning-report reads cost from `state.json` populated by cost-tracking; the cost line is omitted until cost-tracking lands.
 3. **Item 6 last** (`system-multi-project.md`) — refactors the entire body of `ralph.sh`; approve after items 1, 2, and 5 are merged to minimise conflicts.
-4. **Items 3, 7, 8** are independent and can be approved in any order once items 1 and 2 are done.
+4. **Items 3, 7, 8, 9** are independent and can be approved in any order once items 1 and 2 are done. Item 9 (tag pruning) is low-priority maintenance — approve it last.
 
 Conflict resolved (2026-05-19 re-groom): `feature-morning-report.md` previously described capturing cost via stderr grep, which conflicts with cost-tracking's `--output-format stream-json`. The morning-report spec now reads cost from `state.json` only.

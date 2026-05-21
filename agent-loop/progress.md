@@ -159,3 +159,21 @@ Watch-outs for implementation:
   in the "Always" section at the bottom; replace only that sentence, not the whole section.
 - The `--self-test` assertion uses grep on the `ralph.sh` source file itself — straightforward
   but make sure the grep pattern is specific enough to not false-positive on a comment.
+
+## 2026-05-21 — spec: pre-iteration git tag pruning (MODE=spec, Ralph loop)
+
+All 8 existing backlog items already had draft specs. Identified a genuine new item: each
+iteration creates a `ralph-pre-iter-*` rollback tag that is never pruned. At MAX_ITERS=4,
+that accumulates ~120 tags/month with no cleanup mechanism.
+
+Wrote `specs/system-tag-prune.md` as item 9 (lowest priority — maintenance-only, approve
+last). Key design: `prune_old_tags()` function in `ralph.sh`, called at wrap-up guarded by
+`DRY_RUN=0`; keeps most recent `TAG_KEEP` (default 20) tags; `TAG_KEEP` in `ralph.env.example`.
+Updated `specs/README.md` count from 8 to 9 and added item 9 to the approval-order notes.
+
+Watch-outs for implementation:
+- `git tag -l 'ralph-pre-iter-*' | sort` sorts lexicographically; the timestamp format
+  (YYYYMMDD-HHMMSS) sorts correctly as-is, so no `--sort` flag needed.
+- `git tag -d` is local-only; the remote won't have these tags (ralph.sh never pushes
+  tags via `git push --tags`), so no remote deletion needed.
+- The `--self-test` assertion is just a grep for the function name — simple and dependency-free.
