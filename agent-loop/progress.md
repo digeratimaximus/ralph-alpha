@@ -177,3 +177,18 @@ Watch-outs for implementation:
 - `git tag -d` is local-only; the remote won't have these tags (ralph.sh never pushes
   tags via `git push --tags`), so no remote deletion needed.
 - The `--self-test` assertion is just a grep for the function name — simple and dependency-free.
+
+## 2026-05-22 — spec: all 9 backlog items already specced (MODE=spec, Ralph loop)
+
+All 9 backlog items already have draft spec files; no unspecced item remains to pick. Backlog
+was last groomed 2026-05-21. Nothing has been approved yet — the loop is waiting for the human
+to add filenames to `specs/approved.txt` before any implement-mode iteration can begin.
+
+Suggested approval order (from specs/README.md):
+1. `system-self-build.md` and `system-allowlist.md` first (back-pressure gate + allowlist fix)
+2. `system-cost-tracking.md` before `feature-morning-report.md` (data dependency)
+3. `system-multi-project.md` last (full ralph.sh refactor, high conflict risk)
+4. `system-launchd-install.md`, `feature-regression-harness.md`, `feature-notification.md`,
+   `system-tag-prune.md` are independent and can be approved in any order.
+
+No spec written this iteration — there was nothing to spec.
