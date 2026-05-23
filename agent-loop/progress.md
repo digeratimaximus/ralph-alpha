@@ -192,3 +192,10 @@ Suggested approval order (from specs/README.md):
    `system-tag-prune.md` are independent and can be approved in any order.
 
 No spec written this iteration — there was nothing to spec.
+
+## 2026-05-23 — spec: still waiting for human approval (MODE=spec, Ralph loop)
+
+All 9 backlog items have draft spec files; `specs/approved.txt` remains empty. No new spec to
+write and no re-groom needed. Loop is idle until the human approves at least one spec file.
+
+No spec written this iteration — loop is blocked on human approval gate.
