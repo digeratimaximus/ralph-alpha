@@ -199,3 +199,10 @@ All 9 backlog items have draft spec files; `specs/approved.txt` remains empty. N
 write and no re-groom needed. Loop is idle until the human approves at least one spec file.
 
 No spec written this iteration — loop is blocked on human approval gate.
+
+## 2026-05-24 — spec: still waiting for human approval (MODE=spec, Ralph loop)
+
+All 9 backlog items have draft spec files; `specs/approved.txt` remains empty. No new spec to
+write and no re-groom needed. Loop is idle until the human approves at least one spec file.
+
+No spec written this iteration — loop is blocked on human approval gate.
