@@ -39,6 +39,14 @@ if [ "$SELF_TEST" -eq 1 ]; then
   [ -f "$HERE/specs/README.md" ]      || { echo "FAIL: specs/README.md missing"; ok=0; }
   [ -f "$HERE/specs/approved.txt" ]   || { echo "FAIL: specs/approved.txt missing"; ok=0; }
   command -v shellcheck >/dev/null 2>&1 && { shellcheck -S warning "$HERE/ralph.sh" || { echo "FAIL: shellcheck"; ok=0; }; }
+  bash -n "$HERE/install-launchd.sh" || { echo "FAIL: install-launchd.sh has a syntax error"; ok=0; }
+  command -v shellcheck >/dev/null 2>&1 && { shellcheck -S warning "$HERE/install-launchd.sh" || { echo "FAIL: shellcheck install-launchd.sh"; ok=0; }; }
+  if command -v xmllint >/dev/null 2>&1; then
+    xmllint --noout "$HERE/com.davidmarsh.ralph.plist" 2>/dev/null || { echo "FAIL: plist invalid XML (xmllint)"; ok=0; }
+  elif command -v plutil >/dev/null 2>&1; then
+    plutil -lint "$HERE/com.davidmarsh.ralph.plist" >/dev/null 2>&1 || { echo "FAIL: plist invalid (plutil)"; ok=0; }
+  fi
+  grep -q '__RALPH_DIR__' "$HERE/com.davidmarsh.ralph.plist" || { echo "FAIL: __RALPH_DIR__ placeholder missing from plist template"; ok=0; }
   [ "$ok" -eq 1 ] && { echo "self-test OK"; exit 0; } || exit 1
 fi
 

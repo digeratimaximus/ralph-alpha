@@ -40,6 +40,6 @@ In `./ralph.sh --self-test`:
 4. `./install-launchd.sh --uninstall` on a machine that never ran the install exits 0 (no crash).
 
 ## Progress
-- [ ] Add `bash -n`, `shellcheck`, and `xmllint`/`plutil` checks to `--self-test`
-- [ ] Verify plist template still has `__RALPH_DIR__` placeholder (not baked in)
+- [x] Add `bash -n`, `shellcheck`, and `xmllint`/`plutil` checks to `--self-test`
+- [x] Verify plist template still has `__RALPH_DIR__` placeholder (not baked in)
 - [ ] Manual install + uninstall verification on dev machine

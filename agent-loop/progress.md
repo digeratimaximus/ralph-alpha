@@ -206,3 +206,19 @@ All 9 backlog items have draft spec files; `specs/approved.txt` remains empty. N
 write and no re-groom needed. Loop is idle until the human approves at least one spec file.
 
 No spec written this iteration — loop is blocked on human approval gate.
+
+## 2026-05-25 — implement: system-launchd-install (branch: system/launchd-install)
+
+Added four `--self-test` assertions for the launchd install infrastructure: `bash -n install-launchd.sh`
+(syntax check), `shellcheck install-launchd.sh` (skipped if absent), `xmllint`/`plutil` XML validation
+of the plist template, and a grep asserting `__RALPH_DIR__` placeholder is still present. `./ralph.sh
+--self-test` exits 0. The "Manual install + uninstall verification" progress item requires a human to
+run `./install-launchd.sh` and `./install-launchd.sh --uninstall` on the dev machine — it cannot be
+automated in `--self-test` (launchctl is side-effectful).
+
+Watch-outs for next iterations:
+- system-self-build (PR #1), system-allowlist (PR #2), and system-launchd-install (PR #3) all have open
+  PRs that touch ralph.sh; merge them before implementing items that make large ralph.sh changes
+  (cost-tracking, multi-project).
+- The launchd assertions land on main's version of ralph.sh; the system-allowlist PR adds the TodoWrite
+  assertion separately — they'll merge cleanly (no overlap in the --self-test block).
