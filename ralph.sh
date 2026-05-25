@@ -39,6 +39,80 @@ if [ "$SELF_TEST" -eq 1 ]; then
   [ -f "$HERE/specs/README.md" ]      || { echo "FAIL: specs/README.md missing"; ok=0; }
   [ -f "$HERE/specs/approved.txt" ]   || { echo "FAIL: specs/approved.txt missing"; ok=0; }
   command -v shellcheck >/dev/null 2>&1 && { shellcheck -S warning "$HERE/ralph.sh" || { echo "FAIL: shellcheck"; ok=0; }; }
+
+  # Assert ralph.env.example is source-able
+  # shellcheck disable=SC1090
+  if ( set +u; source "$HERE/ralph.env.example" ) 2>/dev/null; then
+    echo "PASS: ralph.env.example source-able"
+  else
+    echo "FAIL: ralph.env.example not source-able"; ok=0
+  fi
+
+  # Assert --dry-run exits 0 and writes no files to reports/
+  _dr_tmp="$(mktemp -d)"
+  mkdir -p "$_dr_tmp/agent-loop"
+  printf '# test\n' > "$_dr_tmp/agent-loop/PROMPT.md"
+  printf 'REPO="%s"\nMODE="spec"\nTEST_CMD="true"\n' "$_dr_tmp" > "$_dr_tmp/ralph-dr.env"
+  _dr_before="$(ls "$HERE/reports/" 2>/dev/null | wc -l | tr -d ' ')"
+  "$HERE/ralph.sh" --dry-run --env "$_dr_tmp/ralph-dr.env" >/dev/null 2>&1; _dr_rc=$?
+  _dr_after="$(ls "$HERE/reports/" 2>/dev/null | wc -l | tr -d ' ')"
+  rm -rf "$_dr_tmp"
+  if [ "$_dr_rc" -eq 0 ] && [ "$_dr_before" -eq "$_dr_after" ]; then
+    echo "PASS: --dry-run smoke (exit 0, no reports/ files created)"
+  else
+    [ "$_dr_rc" -ne 0 ] && { echo "FAIL: --dry-run exited non-zero ($_dr_rc)"; ok=0; }
+    [ "$_dr_before" -ne "$_dr_after" ] && { echo "FAIL: --dry-run created files in reports/"; ok=0; }
+  fi
+
+  # Assert MAX_CONSEC_FAILURES early-stop causes non-zero exit (uses a stub claude that always fails)
+  _fail_tmp="$(mktemp -d)"
+  mkdir -p "$_fail_tmp/repo/agent-loop"
+  printf '# test\n' > "$_fail_tmp/repo/agent-loop/PROMPT.md"
+  git -C "$_fail_tmp/repo" init -q
+  git -C "$_fail_tmp/repo" -c user.email="t@t" -c user.name="T" commit --allow-empty -q -m "init"
+  printf '#!/usr/bin/env bash\ncat >/dev/null\nexit 1\n' > "$_fail_tmp/stub-fail.sh"
+  chmod +x "$_fail_tmp/stub-fail.sh"
+  printf 'REPO="%s/repo"\nMODE="spec"\nTEST_CMD="true"\nCLAUDE_BIN="%s/stub-fail.sh"\nMAX_ITERS=5\nMAX_CONSEC_FAILURES=2\n' \
+    "$_fail_tmp" "$_fail_tmp" > "$_fail_tmp/ralph-fail.env"
+  "$HERE/ralph.sh" --env "$_fail_tmp/ralph-fail.env" >/dev/null 2>&1; _fail_rc=$?
+  rm -rf "$_fail_tmp"
+  if [ "$_fail_rc" -ne 0 ]; then
+    echo "PASS: MAX_CONSEC_FAILURES early-stop exits non-zero"
+  else
+    echo "FAIL: loop did not exit non-zero after MAX_CONSEC_FAILURES consecutive failures"; ok=0
+  fi
+
+  # Assert implement-mode pushes feature branch to remote, not main
+  _impl_tmp="$(mktemp -d)"
+  git init --bare -q "$_impl_tmp/remote.git"
+  mkdir -p "$_impl_tmp/repo/agent-loop"
+  printf '# test\n' > "$_impl_tmp/repo/agent-loop/PROMPT.md"
+  git -C "$_impl_tmp/repo" init -q
+  git -C "$_impl_tmp/repo" -c user.email="t@t" -c user.name="T" commit --allow-empty -q -m "init"
+  git -C "$_impl_tmp/repo" remote add origin "$_impl_tmp/remote.git"
+  _impl_repo="$_impl_tmp/repo"
+  printf '#!/usr/bin/env bash\ncat >/dev/null\ngit -C "%s" checkout -b feature/stub-branch >/dev/null 2>&1\ngit -C "%s" -c user.email="t@t" -c user.name="T" commit --allow-empty -q -m "stub"\nexit 0\n' \
+    "$_impl_repo" "$_impl_repo" > "$_impl_tmp/stub-impl.sh"
+  chmod +x "$_impl_tmp/stub-impl.sh"
+  printf 'REPO="%s"\nMODE="implement"\nTEST_CMD="true"\nCLAUDE_BIN="%s/stub-impl.sh"\nMAX_ITERS=1\nMAX_CONSEC_FAILURES=2\nREMOTE="origin"\nMAIN_BRANCH="main"\n' \
+    "$_impl_repo" "$_impl_tmp" > "$_impl_tmp/ralph-impl.env"
+  "$HERE/ralph.sh" --env "$_impl_tmp/ralph-impl.env" >/dev/null 2>&1
+  _impl_branch_pushed=0
+  _impl_main_pushed=0
+  if git -C "$_impl_tmp/remote.git" branch 2>/dev/null | grep -q "feature/stub-branch"; then
+    _impl_branch_pushed=1
+  fi
+  if git -C "$_impl_tmp/remote.git" branch 2>/dev/null | grep -q "main"; then
+    _impl_main_pushed=1
+  fi
+  rm -rf "$_impl_tmp"
+  if [ "$_impl_branch_pushed" -eq 1 ] && [ "$_impl_main_pushed" -eq 0 ]; then
+    echo "PASS: implement-mode pushes feature branch, not main"
+  else
+    [ "$_impl_branch_pushed" -eq 0 ] && { echo "FAIL: implement-mode did not push feature branch"; ok=0; }
+    [ "$_impl_main_pushed" -eq 1 ] && { echo "FAIL: implement-mode pushed main to remote"; ok=0; }
+  fi
+
   [ "$ok" -eq 1 ] && { echo "self-test OK"; exit 0; } || exit 1
 fi
 
@@ -138,6 +212,7 @@ run_claude() {
 # ---------------------------------------------------------------------------
 fails=0
 did=0
+_exit_rc=0
 for i in $(seq 1 "$MAX_ITERS"); do
   [ -f "$REPO/PAUSE" ]            && { log "PAUSE appeared mid-run — stopping after $did iteration(s)"; break; }
   [ "$(date +%s)" -gt "$DEADLINE" ] && { log "time budget exhausted — stopping after $did iteration(s)"; break; }
@@ -189,6 +264,7 @@ for i in $(seq 1 "$MAX_ITERS"); do
     break
   fi
 done
+if [ "$fails" -ge "$MAX_CONSEC_FAILURES" ]; then _exit_rc=1; fi
 
 # ---------------------------------------------------------------------------
 # Wrap up
@@ -213,3 +289,4 @@ if [ "$DRY_RUN" -eq 0 ]; then
 fi
 
 log "done."
+exit "$_exit_rc"
