@@ -48,7 +48,7 @@ Goal: implement the next **approved** spec, on a branch, verified, as a PR. **Yo
 
 ## Always
 
-- Use sub-agents freely for reading/searching/grepping. Use **at most one** sub-agent at a time for running tests/builds — concurrent validation causes failures.
+- Search directly with `Grep`, `Glob`, and `Read` — sub-agents are not available in this context (not in the tool allowlist).
 - Keep `specs/README.md` and `agent-loop/progress.md` accurate; they're the loop's memory.
 - If `specs/README.md` has grown unwieldy or stale, it's fine to spend an iteration (in spec mode) re-grooming it instead of adding a new spec — note that you did so.
 - If you find the repo in a broken state from a previous iteration, fixing that **is** a legitimate one-item iteration. Say so in `progress.md`.

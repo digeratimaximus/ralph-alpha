@@ -39,6 +39,7 @@ if [ "$SELF_TEST" -eq 1 ]; then
   [ -f "$HERE/specs/README.md" ]      || { echo "FAIL: specs/README.md missing"; ok=0; }
   [ -f "$HERE/specs/approved.txt" ]   || { echo "FAIL: specs/approved.txt missing"; ok=0; }
   command -v shellcheck >/dev/null 2>&1 && { shellcheck -S warning "$HERE/ralph.sh" || { echo "FAIL: shellcheck"; ok=0; }; }
+  grep -q 'TodoWrite' "$HERE/ralph.sh"  || { echo "FAIL: TodoWrite missing from ALLOWED"; ok=0; }
   [ "$ok" -eq 1 ] && { echo "self-test OK"; exit 0; } || exit 1
 fi
 
@@ -117,7 +118,7 @@ Before concluding code does not exist, grep for it. No placeholder implementatio
 # Tool allowlist for the agent. Space-separated, Claude Code permission syntax.
 # Edits are auto-accepted (--permission-mode acceptEdits); these cover the Bash commands an iteration needs.
 # Anything not listed gets denied — that's the guardrail; the iteration adapts or fails and is rolled back.
-ALLOWED='Read Edit Write Grep Glob Bash(git *) Bash(./ralph.sh *) Bash(shellcheck *) Bash(bash -n *) Bash(ls *) Bash(cat *) Bash(rg *) Bash(gh pr *)'
+ALLOWED='Read Edit Write Grep Glob TodoWrite Bash(git *) Bash(./ralph.sh *) Bash(shellcheck *) Bash(bash -n *) Bash(ls *) Bash(cat *) Bash(rg *) Bash(gh pr *)'
 
 run_claude() {
   local n="$1"
