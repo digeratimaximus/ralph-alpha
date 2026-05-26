@@ -193,6 +193,28 @@ Suggested approval order (from specs/README.md):
 
 No spec written this iteration — there was nothing to spec.
 
+## 2026-05-26 — implement: system-cost-tracking (MODE=implement, branch: system/cost-tracking)
+
+Item 5 from the backlog. Implemented all 6 tasks from `specs/system-cost-tracking.md`.
+
+Changes in `ralph.sh`:
+- Added `COST_CEILING_USD` default (20.0) to config loading section.
+- Switched `run_claude()` to `--output-format stream-json | tee "$ITER_LOG"` to capture per-iteration cost.
+- After each `run_claude` call, parsed `cost_usd` from the `result` event via `jq`; accumulated in `$session_cost_total`.
+- After back-pressure passes, appended a run entry to `state.json` (ts, mode, iter, fails, cost_usd).
+- Added session cost ceiling check at the top of each loop iteration; breaks with a log line if `$session_cost_total + prior_today_cost >= COST_CEILING_USD`.
+- Updated wrap-up summary to include `session cost this run`.
+- Added two `--self-test` assertions: COST_CEILING_USD documented in ralph.env.example; state.json is valid JSON with runs key.
+
+Changes in `ralph.env.example`: added `COST_CEILING_USD=20.0` line.
+
+Watch-outs for the human reviewer:
+- `--output-format stream-json` makes the claude output JSON lines rather than plain text; piping through `tee` keeps it live in the terminal while also capturing it. The report will contain JSON events rather than readable prose — a future morning-report spec will need to strip/format this.
+- Cost parsing is guarded by `command -v jq`; if jq is absent, iter_cost stays 0 and ceiling check is skipped. Install jq for cost tracking to be active.
+- The state.json per-iteration entry schema uses `"iter"` (iteration index) rather than the `"iters"` (count) that the spec's example showed — this is more useful and matches what can be known per-iteration.
+
+`./ralph.sh --self-test` exits 0.
+
 ## 2026-05-23 — spec: still waiting for human approval (MODE=spec, Ralph loop)
 
 All 9 backlog items have draft spec files; `specs/approved.txt` remains empty. No new spec to
