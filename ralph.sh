@@ -4,8 +4,9 @@
 # Usage:
 #   ./ralph.sh                 run the loop using ./ralph.env
 #   ./ralph.sh --env path.env  run with a specific env file
-#   ./ralph.sh --dry-run       print what each iteration WOULD do; never calls claude, never writes
-#   ./ralph.sh --self-test     lint + sanity checks only; exit 0 if healthy (used as TEST_CMD for self-hosting)
+#   ./ralph.sh --dry-run          print what each iteration WOULD do; never calls claude, never writes
+#   ./ralph.sh --self-test        lint + sanity checks only; exit 0 if healthy (used as TEST_CMD for self-hosting)
+#   ./ralph.sh --regression-test  replay fixture spec/implement runs with stubs; assert safety invariants
 #
 # Safety: never merges; never pushes MAIN_BRANCH (spec markdown excepted); per-iteration git tag rollback;
 # PAUSE file kill switch; MAX_ITERS / MAX_CONSEC_FAILURES / TIME_BUDGET_SECONDS circuit breakers.
@@ -16,12 +17,14 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$HERE/ralph.env"
 DRY_RUN=0
 SELF_TEST=0
+REGRESSION_TEST=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --env) ENV_FILE="$2"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     --self-test) SELF_TEST=1; shift ;;
+    --regression-test) REGRESSION_TEST=1; shift ;;
     -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
@@ -39,7 +42,82 @@ if [ "$SELF_TEST" -eq 1 ]; then
   [ -f "$HERE/specs/README.md" ]      || { echo "FAIL: specs/README.md missing"; ok=0; }
   [ -f "$HERE/specs/approved.txt" ]   || { echo "FAIL: specs/approved.txt missing"; ok=0; }
   command -v shellcheck >/dev/null 2>&1 && { shellcheck -S warning "$HERE/ralph.sh" || { echo "FAIL: shellcheck"; ok=0; }; }
+  "$HERE/ralph.sh" --regression-test       || { echo "FAIL: --regression-test"; ok=0; }
   [ "$ok" -eq 1 ] && { echo "self-test OK"; exit 0; } || exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# --regression-test: replay fixture spec/implement runs with stubs; assert
+# safety invariants without hitting the real LLM.
+# ---------------------------------------------------------------------------
+if [ "$REGRESSION_TEST" -eq 1 ]; then
+  _ok=1
+  _STUB_DIR="$HERE/tests/regression"
+
+  for _f in setup-fixture.sh stub-spec-claude.sh stub-implement-claude.sh; do
+    [ -f "$_STUB_DIR/$_f" ] || { echo "FAIL: tests/regression/$_f missing"; _ok=0; }
+  done
+  [ "$_ok" -eq 1 ] || exit 1
+  # Ensure stubs are executable (safe to do here; no external tool call needed).
+  chmod +x "$_STUB_DIR/setup-fixture.sh" "$_STUB_DIR/stub-spec-claude.sh" "$_STUB_DIR/stub-implement-claude.sh"
+
+  # ---- spec-mode pass ----
+  _fix=$(mktemp -d)
+  trap 'rm -rf "$_fix"' EXIT INT TERM
+  bash "$_STUB_DIR/setup-fixture.sh" "$_fix"
+  cat > "$_fix/ralph.test.env" <<EOF
+REPO=$_fix
+MODE=spec
+MODEL=stub
+MAX_ITERS=1
+MAX_CONSEC_FAILURES=2
+TIME_BUDGET_SECONDS=3600
+MAX_BUDGET_USD=5
+TEST_CMD=true
+REMOTE=stub-origin
+MAIN_BRANCH=main
+CLAUDE_BIN=$_STUB_DIR/stub-spec-claude.sh
+EOF
+  if ! "$HERE/ralph.sh" --env "$_fix/ralph.test.env" >/dev/null 2>&1; then
+    echo "FAIL: regression spec-mode run exited non-zero"; _ok=0
+  fi
+  _rhead=$(git -C "$_fix" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  [ "$_rhead" = "main" ] || { echo "FAIL: regression spec-mode — HEAD is '$_rhead', expected 'main'"; _ok=0; }
+  if ! git -C "$_fix" show --name-only HEAD 2>/dev/null | grep -q "specs/"; then
+    echo "FAIL: regression spec-mode — no new file under specs/ in latest main commit"; _ok=0
+  fi
+  rm -rf "$_fix"
+  trap - EXIT INT TERM
+
+  # ---- implement-mode pass ----
+  _fix=$(mktemp -d)
+  trap 'rm -rf "$_fix"' EXIT INT TERM
+  bash "$_STUB_DIR/setup-fixture.sh" "$_fix"
+  _main_before=$(git -C "$_fix" rev-parse main)
+  cat > "$_fix/ralph.test.env" <<EOF
+REPO=$_fix
+MODE=implement
+MODEL=stub
+MAX_ITERS=1
+MAX_CONSEC_FAILURES=2
+TIME_BUDGET_SECONDS=3600
+MAX_BUDGET_USD=5
+TEST_CMD=true
+REMOTE=stub-origin
+MAIN_BRANCH=main
+CLAUDE_BIN=$_STUB_DIR/stub-implement-claude.sh
+EOF
+  if ! "$HERE/ralph.sh" --env "$_fix/ralph.test.env" >/dev/null 2>&1; then
+    echo "FAIL: regression implement-mode run exited non-zero"; _ok=0
+  fi
+  _rhead=$(git -C "$_fix" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  [ "$_rhead" != "main" ] || { echo "FAIL: regression implement-mode — HEAD is still on 'main' after implement run"; _ok=0; }
+  _main_after=$(git -C "$_fix" rev-parse main 2>/dev/null || echo "")
+  [ "$_main_before" = "$_main_after" ] || { echo "FAIL: regression implement-mode — main branch was modified"; _ok=0; }
+  rm -rf "$_fix"
+  trap - EXIT INT TERM
+
+  [ "$_ok" -eq 1 ] && { echo "regression-test OK"; exit 0; } || exit 1
 fi
 
 # ---------------------------------------------------------------------------

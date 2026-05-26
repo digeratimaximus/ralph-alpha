@@ -206,3 +206,31 @@ All 9 backlog items have draft spec files; `specs/approved.txt` remains empty. N
 write and no re-groom needed. Loop is idle until the human approves at least one spec file.
 
 No spec written this iteration — loop is blocked on human approval gate.
+
+## 2026-05-26 — implement: feature-regression-harness (MODE=implement, branch: feature/regression-harness)
+
+Item 7 from the backlog. Items 1–5 have branches (not yet merged); item 6 (multi-project) skipped
+per dependency note — it refactors all of ralph.sh and should wait until 1, 2, 5 are merged.
+
+Three new files + ralph.sh changes:
+
+- **`tests/regression/setup-fixture.sh`**: initialises a minimal git repo (agent-loop/, specs/,
+  one approved spec, one initial commit) in a given temp dir. Called by `--regression-test`.
+- **`tests/regression/stub-spec-claude.sh`**: spec-mode stub — consumes stdin, writes a new spec,
+  commits to main. All CLI flags from ralph.sh are silently ignored.
+- **`tests/regression/stub-implement-claude.sh`**: implement-mode stub — creates `feature/stub-test`
+  branch, commits there. Never touches main.
+- **`ralph.sh --regression-test`**: runs setup-fixture twice (spec + implement); asserts spec-mode
+  leaves HEAD on main with a new specs/ file; implement-mode leaves HEAD off main and main SHA
+  unchanged. `chmod +x` on stubs is called inside the block.
+- **`ralph.sh --self-test` addition**: calls `./ralph.sh --regression-test` as one assertion.
+
+`./ralph.sh --regression-test` exits 0 ("regression-test OK").
+`./ralph.sh --self-test` exits 0 ("self-test OK").
+
+Watch-outs for the human reviewer:
+- Branch is from main (predates other feature branches). Conflicts with other branches should be
+  minimal — regression-harness only adds new content to ralph.sh (no overlapping edits).
+- `gh` is installed on the machine; called for the fixture implement-mode run, fails gracefully
+  (stub-origin not a real GitHub remote) with `log "warn:"`. Does not fail the run.
+- `--regression-test` creates 1–2 small report files in `reports/` per invocation.

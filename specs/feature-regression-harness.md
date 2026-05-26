@@ -33,7 +33,7 @@ Tear down fixture repo after each sub-run to isolate.
 - Delete `tests/regression/stub-spec-claude.sh` and confirm `--regression-test` exits non-zero.
 
 ## Progress
-- [ ] Write `tests/regression/setup-fixture.sh`
-- [ ] Write `tests/regression/stub-spec-claude.sh` and `stub-implement-claude.sh`
-- [ ] Add `--regression-test` flag to `ralph.sh`
-- [ ] Add regression assertion to `--self-test`
+- [x] Write `tests/regression/setup-fixture.sh`
+- [x] Write `tests/regression/stub-spec-claude.sh` and `stub-implement-claude.sh`
+- [x] Add `--regression-test` flag to `ralph.sh`
+- [x] Add regression assertion to `--self-test`

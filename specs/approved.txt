@@ -1,3 +1,18 @@
 # One spec filename per line (e.g. feature-foo.md). A filename here means: cleared for implement-mode.
 # This file is the human's gate. The loop reads it; the loop never writes to it.
 # Empty = nothing approved yet = implement-mode has nothing to do.
+
+# Approved 2026-05-25 by David Marsh
+# Implement in this order (see specs/README.md for dependency notes):
+# 1 + 2 first (back-pressure gate + allowlist fix)
+# 5 before 4 (cost-tracking populates state.json that morning-report reads)
+# 6 last (full ralph.sh refactor — high conflict risk)
+system-self-build.md
+system-allowlist.md
+system-launchd-install.md
+system-cost-tracking.md
+feature-morning-report.md
+feature-regression-harness.md
+feature-notification.md
+system-tag-prune.md
+system-multi-project.md
