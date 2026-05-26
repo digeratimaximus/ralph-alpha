@@ -138,6 +138,7 @@ run_claude() {
 # ---------------------------------------------------------------------------
 fails=0
 did=0
+_pr_log=$(mktemp)  # collects PR URLs for the ## PRs opened section
 for i in $(seq 1 "$MAX_ITERS"); do
   [ -f "$REPO/PAUSE" ]            && { log "PAUSE appeared mid-run — stopping after $did iteration(s)"; break; }
   [ "$(date +%s)" -gt "$DEADLINE" ] && { log "time budget exhausted — stopping after $did iteration(s)"; break; }
@@ -160,14 +161,23 @@ for i in $(seq 1 "$MAX_ITERS"); do
     if ( cd "$REPO" && eval "$TEST_CMD" ) >>"$REPORT" 2>&1; then
       log "iter $i — back-pressure PASSED"
       fails=0
+      # Per-iteration diff stat
+      if git -C "$REPO" rev-parse HEAD~1 >/dev/null 2>&1; then
+        { echo; echo "### Diff (iter $i)"; git -C "$REPO" diff --stat HEAD~1 HEAD 2>/dev/null || true; } >> "$REPORT"
+      fi
       # implement-mode: if the agent created a branch and committed, push it and open a PR. Never merge.
       cur="$(git -C "$REPO" rev-parse --abbrev-ref HEAD)"
       if [ "$MODE" = "implement" ] && [ "$cur" != "$MAIN_BRANCH" ]; then
         git -C "$REPO" push -u "$REMOTE" "$cur" >>"$REPORT" 2>&1 || log "warn: push failed for $cur"
         if command -v gh >/dev/null 2>&1; then
-          gh pr create --repo "$(git -C "$REPO" remote get-url "$REMOTE" 2>/dev/null)" \
-            --head "$cur" --base "$MAIN_BRANCH" --fill >>"$REPORT" 2>&1 \
-            && log "opened PR for $cur" || log "warn: gh pr create failed for $cur (open it manually)"
+          _pr_url="$(gh pr create --repo "$(git -C "$REPO" remote get-url "$REMOTE" 2>/dev/null)" \
+            --head "$cur" --base "$MAIN_BRANCH" --fill 2>>"$REPORT" || true)"
+          if [ -n "$_pr_url" ]; then
+            printf -- '- %s\n' "$_pr_url" >> "$_pr_log"
+            log "opened PR: $_pr_url"
+          else
+            log "warn: gh pr create failed for $cur (open it manually)"
+          fi
         else
           log "gh not installed — branch $cur pushed; open the PR manually"
         fi
@@ -200,6 +210,12 @@ if [ "$DRY_RUN" -eq 0 ]; then
     echo "- iterations attempted: $did"
     echo "- consecutive failures at stop: $fails"
     echo "- mode: $MODE"
+    if command -v jq >/dev/null 2>&1 && [ -f "$STATE" ]; then
+      _run_cost=$(jq -r --arg ts "$TS" \
+        '[.runs[] | select(.ts == $ts) | .cost_usd] | add // empty' \
+        "$STATE" 2>/dev/null || true)
+      [ -n "$_run_cost" ] && echo "- cost_usd: $_run_cost"
+    fi
     if [ "$MODE" = "implement" ]; then
       echo "- branches with un-merged PRs (review + merge these):"
       git -C "$REPO" branch --no-merged "$MAIN_BRANCH" 2>/dev/null | sed 's/^/  - /' || true
@@ -207,9 +223,34 @@ if [ "$DRY_RUN" -eq 0 ]; then
     echo
     echo "Triage: review the PR(s) above; approve good draft specs by adding their filename to specs/approved.txt."
   } >> "$REPORT"
+  {
+    echo
+    echo "## Action required"
+    _found_unapproved=0
+    for _spec_f in "$REPO/specs/"*.md; do
+      [ -f "$_spec_f" ] || continue
+      _spec_name="$(basename "$_spec_f")"
+      [ "$_spec_name" = "README.md" ] && continue
+      if ! grep -qxF "$_spec_name" "$REPO/specs/approved.txt" 2>/dev/null; then
+        if [ "$_found_unapproved" -eq 0 ]; then
+          echo "Draft specs awaiting approval:"
+          _found_unapproved=1
+        fi
+        echo "- $_spec_name"
+      fi
+    done
+    [ "$_found_unapproved" -eq 0 ] && echo "All specs approved (none awaiting approval)."
+    echo
+    echo "## PRs opened"
+    if [ -s "$_pr_log" ]; then
+      cat "$_pr_log"
+    else
+      echo "(none this run)"
+    fi
+  } >> "$REPORT"
   log "report written: $REPORT"
-  # crude cost note for state.json
-  [ -f "$STATE" ] || echo '{"runs":[]}' > "$STATE"
+  [ -f "$STATE" ] || echo '{"schema":1,"runs":[]}' > "$STATE"
 fi
 
+rm -f "$_pr_log" 2>/dev/null || true
 log "done."
