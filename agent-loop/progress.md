@@ -206,3 +206,10 @@ All 9 backlog items have draft spec files; `specs/approved.txt` remains empty. N
 write and no re-groom needed. Loop is idle until the human approves at least one spec file.
 
 No spec written this iteration — loop is blocked on human approval gate.
+
+## 2026-05-27 — implement: no approved items (MODE=implement, Ralph loop)
+
+`specs/approved.txt` is empty. All 9 backlog items have draft specs but none are approved for
+implementation. Loop is blocked on human approval gate — add at least one filename to
+`specs/approved.txt` to unblock. Suggested first approval: `system-self-build.md` and
+`system-allowlist.md` (back-pressure gate and allowlist fix, prerequisite for all other items).
