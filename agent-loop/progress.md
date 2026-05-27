@@ -219,3 +219,10 @@ implementation. Loop is blocked on human approval gate — add at least one file
 `specs/approved.txt` is still empty. No change from previous run. Loop continues to be blocked on
 the human approval gate. To unblock: add `system-self-build.md` (and optionally `system-allowlist.md`)
 to `specs/approved.txt`.
+
+## 2026-05-27 (third run) — implement: no approved items — loop still blocked on human approval gate
+
+`specs/approved.txt` remains empty. All 9 backlog items have draft specs awaiting approval.
+To unblock: add at least `system-self-build.md` to `specs/approved.txt`. Recommended first
+two approvals: `system-self-build.md` and `system-allowlist.md` (back-pressure gate and
+allowlist fix — prerequisites for all other items).
