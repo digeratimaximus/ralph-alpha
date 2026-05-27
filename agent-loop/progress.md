@@ -213,3 +213,9 @@ No spec written this iteration — loop is blocked on human approval gate.
 implementation. Loop is blocked on human approval gate — add at least one filename to
 `specs/approved.txt` to unblock. Suggested first approval: `system-self-build.md` and
 `system-allowlist.md` (back-pressure gate and allowlist fix, prerequisite for all other items).
+
+## 2026-05-27 (second run) — implement: still no approved items (MODE=implement, Ralph loop)
+
+`specs/approved.txt` is still empty. No change from previous run. Loop continues to be blocked on
+the human approval gate. To unblock: add `system-self-build.md` (and optionally `system-allowlist.md`)
+to `specs/approved.txt`.
