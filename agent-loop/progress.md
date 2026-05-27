@@ -226,3 +226,9 @@ to `specs/approved.txt`.
 To unblock: add at least `system-self-build.md` to `specs/approved.txt`. Recommended first
 two approvals: `system-self-build.md` and `system-allowlist.md` (back-pressure gate and
 allowlist fix — prerequisites for all other items).
+
+## 2026-05-27 (fourth run) — implement: no approved items — loop still blocked on human approval gate
+
+`specs/approved.txt` remains empty. All 9 backlog items have draft specs awaiting approval.
+Loop cannot proceed until the human adds at least one filename to `specs/approved.txt`.
+Recommended first approvals: `system-self-build.md` and `system-allowlist.md`.
