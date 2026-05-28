@@ -255,3 +255,11 @@ All 9 backlog items have draft specs awaiting approval. To unblock: open `specs/
 and add at least one filename. Recommended first approvals (prerequisites for all other items):
   system-self-build.md
   system-allowlist.md
+
+## 2026-05-28 (second run) — implement: no approved items — loop still blocked on human approval gate
+
+`specs/approved.txt` is still empty. Eight consecutive implement-mode runs with nothing to do.
+All 9 backlog items have draft specs; none are approved. The loop cannot proceed without human
+action. To unblock, add at least one of these to `specs/approved.txt`:
+  system-self-build.md
+  system-allowlist.md
