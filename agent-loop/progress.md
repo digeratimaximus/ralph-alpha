@@ -367,3 +367,27 @@ All 9 backlog items have draft specs awaiting approval. The loop cannot proceed 
 adds at least one filename to `specs/approved.txt`. Recommended first approvals:
   system-self-build.md
   system-allowlist.md
+
+## 2026-06-01 — implement: verified system-self-build (branch + PR already existed)
+
+`specs/approved.txt` now contains `system-self-build.md` and `system-allowlist.md` (human gate
+cleared). Item 1 (`system-self-build.md`) is highest priority.
+
+Found that branch `system/self-build` already existed with all Progress checkboxes checked and an
+open PR (opened 2026-05-25). Switched to the branch, ran `./ralph.sh --self-test` — all 4 new
+assertions passed cleanly:
+  PASS: ralph.env.example source-able
+  PASS: --dry-run smoke (exit 0, no reports/ files created)
+  PASS: MAX_CONSEC_FAILURES early-stop exits non-zero
+  PASS: implement-mode pushes feature branch, not main
+
+Implementation summary: added 4 new `--self-test` assertions (source-ability check, dry-run side-
+effect smoke, stub-always-fail MAX_CONSEC_FAILURES check, implement-mode push/not-main check) and
+added `_exit_rc` tracking so the loop exits non-zero when it stops due to consecutive failures.
+
+PR is open — human should review and merge. After merge, approve and implement `system-allowlist.md`
+next (item 2). Both the `system/allowlist` branch and its PR already exist as well — same pattern.
+
+Watch-outs for next iteration:
+- All other backlog items also have pre-existing implementation branches and open PRs (likely from
+  the same earlier session). Verify each one with `--self-test` before marking them shipped.
