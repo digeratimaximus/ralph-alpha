@@ -409,3 +409,15 @@ PR is open — human should review and merge. Both approved items (system-self-b
 system-allowlist) now have open PRs awaiting human review. Next approve step is implementation
 of remaining items; next iteration should pick item 3 (system-launchd-install) or whichever
 item the human approves next.
+
+## 2026-06-01 (third run) — implement: both approved items already shipped, loop blocked on human action
+
+Both `system-self-build.md` and `system-allowlist.md` have all Progress checkboxes checked on
+their implementation branches (`system/self-build`, `system/allowlist`) with open PRs. No
+approved item has unchecked Progress checkboxes — nothing left to implement.
+
+`./ralph.sh --self-test` passes on `main` (exits 0).
+
+To unblock: merge the two open PRs, then add at least one more filename to `specs/approved.txt`.
+Suggested next approvals (in order): `system-launchd-install.md`, `feature-notification.md`,
+`system-tag-prune.md` (all independent once items 1 and 2 are merged).
