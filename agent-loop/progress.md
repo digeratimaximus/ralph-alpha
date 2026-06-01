@@ -391,3 +391,21 @@ next (item 2). Both the `system/allowlist` branch and its PR already exist as we
 Watch-outs for next iteration:
 - All other backlog items also have pre-existing implementation branches and open PRs (likely from
   the same earlier session). Verify each one with `--self-test` before marking them shipped.
+
+## 2026-06-01 (second run) — implement: verified system-allowlist (branch + PR already existed)
+
+Item 2 (`system-allowlist.md`) from approved list. Found `system/allowlist` branch already existed
+with all Progress checkboxes checked and an open PR (opened 2026-05-25). Switched to the branch,
+verified changes are correct:
+  - `TodoWrite` added to `ALLOWED` in `ralph.sh`
+  - `agent-loop/PROMPT.md` "use sub-agents freely" replaced with "Search directly with Grep, Glob,
+    and Read — sub-agents are not available in this context (not in the tool allowlist)"
+  - `--self-test` assertion added: `grep -q 'TodoWrite' "$HERE/ralph.sh"`
+
+Ran `./ralph.sh --self-test` — exits 0, all assertions pass including new TodoWrite check.
+Manual verification: grep ALLOWED shows TodoWrite; PROMPT.md sub-agent text is corrected.
+
+PR is open — human should review and merge. Both approved items (system-self-build and
+system-allowlist) now have open PRs awaiting human review. Next approve step is implementation
+of remaining items; next iteration should pick item 3 (system-launchd-install) or whichever
+item the human approves next.

@@ -1,3 +1,5 @@
 # One spec filename per line (e.g. feature-foo.md). A filename here means: cleared for implement-mode.
 # This file is the human's gate. The loop reads it; the loop never writes to it.
 # Empty = nothing approved yet = implement-mode has nothing to do.
+system-self-build.md
+system-allowlist.md
