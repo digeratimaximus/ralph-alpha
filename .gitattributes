@@ -1,0 +1,2 @@
+# Append-only loop memory: union-merge so concurrent appends never conflict.
+agent-loop/progress.md merge=union
