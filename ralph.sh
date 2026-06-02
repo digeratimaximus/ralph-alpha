@@ -39,6 +39,26 @@ if [ "$SELF_TEST" -eq 1 ]; then
   [ -f "$HERE/specs/README.md" ]      || { echo "FAIL: specs/README.md missing"; ok=0; }
   [ -f "$HERE/specs/approved.txt" ]   || { echo "FAIL: specs/approved.txt missing"; ok=0; }
   command -v shellcheck >/dev/null 2>&1 && { shellcheck -S warning "$HERE/ralph.sh" || { echo "FAIL: shellcheck"; ok=0; }; }
+
+  # cost-tracking assertions
+  grep -q 'COST_CEILING_USD' "$HERE/ralph.env.example" \
+    && echo "PASS: COST_CEILING_USD documented in ralph.env.example" \
+    || { echo "FAIL: COST_CEILING_USD missing from ralph.env.example"; ok=0; }
+  _st_json="$HERE/agent-loop/state.json"
+  if [ -f "$_st_json" ]; then
+    if command -v jq >/dev/null 2>&1; then
+      jq -e '.runs' "$_st_json" >/dev/null 2>&1 \
+        && echo "PASS: state.json is valid JSON with runs key" \
+        || { echo "FAIL: state.json invalid or missing runs key"; ok=0; }
+    elif python3 -c "import json,sys; d=json.load(open('$_st_json')); assert 'runs' in d" 2>/dev/null; then
+      echo "PASS: state.json is valid JSON with runs key"
+    else
+      echo "FAIL: state.json invalid or missing runs key"; ok=0
+    fi
+  else
+    echo "FAIL: state.json not found at $_st_json"; ok=0
+  fi
+
   [ "$ok" -eq 1 ] && { echo "self-test OK"; exit 0; } || exit 1
 fi
 
@@ -59,6 +79,7 @@ source "$ENV_FILE"
 : "${MAX_CONSEC_FAILURES:=2}"
 : "${TIME_BUDGET_SECONDS:=10800}"
 : "${MAX_BUDGET_USD:=5}"
+: "${COST_CEILING_USD:=20.0}"
 : "${TEST_CMD:?TEST_CMD not set in env}"
 : "${REMOTE:=origin}"
 : "${MAIN_BRANCH:=main}"
@@ -119,18 +140,23 @@ Before concluding code does not exist, grep for it. No placeholder implementatio
 # Anything not listed gets denied — that's the guardrail; the iteration adapts or fails and is rolled back.
 ALLOWED='Read Edit Write Grep Glob Bash(git *) Bash(./ralph.sh *) Bash(shellcheck *) Bash(bash -n *) Bash(ls *) Bash(cat *) Bash(rg *) Bash(gh pr *)'
 
+ITER_LOG=""  # path to stream-json capture for current iteration; set by run_claude()
+
 run_claude() {
   local n="$1"
   if [ "$DRY_RUN" -eq 1 ]; then
-    log "[dry-run] iter $n: would run: claude -p (PROMPT.md) --model $MODEL --permission-mode acceptEdits --allowed-tools '$ALLOWED' --max-budget-usd $MAX_BUDGET_USD"
+    log "[dry-run] iter $n: would run: claude -p (PROMPT.md) --model $MODEL --permission-mode acceptEdits --allowed-tools '$ALLOWED' --max-budget-usd $MAX_BUDGET_USD --output-format stream-json"
     return 0
   fi
+  ITER_LOG="$(mktemp)"
   printf '%s\n' "$PROMPT_BODY" | "$CLAUDE_BIN" -p \
     --model "$MODEL" \
     --append-system-prompt "$SYS_EXTRA" \
     --permission-mode acceptEdits \
     --allowed-tools "$ALLOWED" \
-    --max-budget-usd "$MAX_BUDGET_USD"
+    --max-budget-usd "$MAX_BUDGET_USD" \
+    --output-format stream-json \
+    | tee "$ITER_LOG"
 }
 
 # ---------------------------------------------------------------------------
@@ -138,9 +164,23 @@ run_claude() {
 # ---------------------------------------------------------------------------
 fails=0
 did=0
+session_cost_total=0
 for i in $(seq 1 "$MAX_ITERS"); do
   [ -f "$REPO/PAUSE" ]            && { log "PAUSE appeared mid-run — stopping after $did iteration(s)"; break; }
   [ "$(date +%s)" -gt "$DEADLINE" ] && { log "time budget exhausted — stopping after $did iteration(s)"; break; }
+
+  # Session cost ceiling check (uses costs already recorded in state.json for today)
+  if [ "$DRY_RUN" -eq 0 ] && command -v jq >/dev/null 2>&1 && [ -f "$STATE" ]; then
+    _today="$(date +%Y%m%d)"
+    _prior_cost=$(jq -r --arg p "$_today" \
+      '[.runs[] | select(.ts | startswith($p)) | .cost_usd // 0] | add // 0' \
+      "$STATE" 2>/dev/null || echo 0)
+    _total_cost=$(awk "BEGIN{print $session_cost_total + ${_prior_cost:-0}}")
+    if awk "BEGIN{exit !($_total_cost >= $COST_CEILING_USD)}"; then
+      log "session cost ceiling reached ($_total_cost >= $COST_CEILING_USD) — stopping the night"
+      break
+    fi
+  fi
 
   TAG="ralph-pre-iter-${TS}-${i}"
   if [ "$DRY_RUN" -eq 0 ]; then git -C "$REPO" tag -f "$TAG" >/dev/null 2>&1 || true; fi
@@ -148,6 +188,16 @@ for i in $(seq 1 "$MAX_ITERS"); do
 
   run_claude "$i"; rc=$?
   did=$((did+1))
+
+  # Parse cost from stream-json output
+  iter_cost=0
+  if [ "$DRY_RUN" -eq 0 ] && [ -n "$ITER_LOG" ] && [ -f "$ITER_LOG" ] && command -v jq >/dev/null 2>&1; then
+    _parsed=$(jq -r 'select(.type=="result") | .cost_usd // 0' "$ITER_LOG" 2>/dev/null | tail -1)
+    iter_cost="${_parsed:-0}"
+    session_cost_total=$(awk "BEGIN{print $session_cost_total + $iter_cost}")
+    rm -f "$ITER_LOG"
+    ITER_LOG=""
+  fi
 
   if [ "$DRY_RUN" -eq 1 ]; then continue; fi
 
@@ -158,8 +208,15 @@ for i in $(seq 1 "$MAX_ITERS"); do
   else
     log "iter $i — running back-pressure: $TEST_CMD"
     if ( cd "$REPO" && eval "$TEST_CMD" ) >>"$REPORT" 2>&1; then
-      log "iter $i — back-pressure PASSED"
+      log "iter $i — back-pressure PASSED (cost this iter: \$${iter_cost})"
       fails=0
+      # Record iteration cost in state.json
+      if [ -f "$STATE" ] && command -v jq >/dev/null 2>&1; then
+        jq --arg ts "$TS" --arg mode "$MODE" --argjson iter "$i" \
+           --argjson fails "$fails" --argjson cost "${iter_cost}" \
+           '.runs += [{"ts":$ts,"mode":$mode,"iter":$iter,"fails":$fails,"cost_usd":$cost}]' \
+           "$STATE" > "${STATE}.tmp" && mv "${STATE}.tmp" "$STATE" || true
+      fi
       # implement-mode: if the agent created a branch and committed, push it and open a PR. Never merge.
       cur="$(git -C "$REPO" rev-parse --abbrev-ref HEAD)"
       if [ "$MODE" = "implement" ] && [ "$cur" != "$MAIN_BRANCH" ]; then
@@ -200,6 +257,7 @@ if [ "$DRY_RUN" -eq 0 ]; then
     echo "- iterations attempted: $did"
     echo "- consecutive failures at stop: $fails"
     echo "- mode: $MODE"
+    echo "- session cost this run: \$${session_cost_total}"
     if [ "$MODE" = "implement" ]; then
       echo "- branches with un-merged PRs (review + merge these):"
       git -C "$REPO" branch --no-merged "$MAIN_BRANCH" 2>/dev/null | sed 's/^/  - /' || true
@@ -208,8 +266,7 @@ if [ "$DRY_RUN" -eq 0 ]; then
     echo "Triage: review the PR(s) above; approve good draft specs by adding their filename to specs/approved.txt."
   } >> "$REPORT"
   log "report written: $REPORT"
-  # crude cost note for state.json
-  [ -f "$STATE" ] || echo '{"runs":[]}' > "$STATE"
+  [ -f "$STATE" ] || echo '{"schema":1,"runs":[]}' > "$STATE"
 fi
 
 log "done."

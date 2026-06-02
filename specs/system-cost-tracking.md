@@ -51,9 +51,9 @@ Extend `--self-test`:
 
 ## Progress
 
-- [ ] Add `COST_CEILING_USD` to `ralph.env.example` (default `20.0`)
-- [ ] Switch `run_claude()` to `--output-format stream-json`; tee to temp log
-- [ ] Parse `cost_usd` from temp log after each iteration
-- [ ] Append run entry (ts, mode, iters, fails, cost_usd) to `state.json` after each iteration
-- [ ] Check cumulative session cost before each iteration; break if over ceiling
-- [ ] Extend `--self-test` with cost-tracking assertions
+- [x] Add `COST_CEILING_USD` to `ralph.env.example` (default `20.0`)
+- [x] Switch `run_claude()` to `--output-format stream-json`; tee to temp log
+- [x] Parse `cost_usd` from temp log after each iteration
+- [x] Append run entry (ts, mode, iters, fails, cost_usd) to `state.json` after each iteration
+- [x] Check cumulative session cost before each iteration; break if over ceiling
+- [x] Extend `--self-test` with cost-tracking assertions
