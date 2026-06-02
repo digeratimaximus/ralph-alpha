@@ -48,7 +48,7 @@ All new checks are assertions inside `--self-test` so they run as the back-press
 
 ## Progress
 - [x] Audit & fix `claude -p` flags (done 2026-05-12)
-- [ ] Add `--self-test` assertion: ralph.env.example source-able
-- [ ] Add `--self-test` assertion: `--dry-run` smoke (no files written)
-- [ ] Add `--self-test` assertion: stub-claude always-fail → loop stops at MAX_CONSEC_FAILURES
-- [ ] Add `--self-test` assertion: implement-mode stub → push branch, not main
+- [x] Add `--self-test` assertion: ralph.env.example source-able
+- [x] Add `--self-test` assertion: `--dry-run` smoke (no files written)
+- [x] Add `--self-test` assertion: stub-claude always-fail → loop stops at MAX_CONSEC_FAILURES
+- [x] Add `--self-test` assertion: implement-mode stub → push branch, not main

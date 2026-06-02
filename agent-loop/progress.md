@@ -443,3 +443,28 @@ approved item has unchecked Progress checkboxes — nothing left to implement.
 To unblock: merge the two open PRs, then add at least one more filename to `specs/approved.txt`.
 Suggested next approvals (in order): `system-launchd-install.md`, `feature-notification.md`,
 `system-tag-prune.md` (all independent once items 1 and 2 are merged).
+## 2026-05-25 — implement: system-self-build (branch: system/self-build)
+
+First implement-mode iteration. All 9 specs were approved by David 2026-05-25.
+Implemented `specs/system-self-build.md` (item 1) — the three remaining `--self-test` assertions plus
+an exit-code fix.
+
+Changes to `ralph.sh`:
+- Added 4 new `--self-test` assertion groups, each emitting PASS/FAIL:
+  1. `ralph.env.example` is source-able (`bash -c "set +u; source ralph.env.example"`)
+  2. `--dry-run` smoke: launches a sub-invocation against a tmp repo, asserts exit 0 and no files
+     written to `reports/`
+  3. `MAX_CONSEC_FAILURES` early-stop: uses a stub claude that always exits 1; asserts the loop
+     exits non-zero after hitting the consecutive failure limit
+  4. Implement-mode push: uses a stub claude that creates a feature branch; asserts the branch is
+     pushed to a local bare remote and `main` is not pushed
+- Fixed exit code: the loop now exits 1 when `MAX_CONSEC_FAILURES` is reached (previously exited 0).
+  Added `_exit_rc` variable set after the loop body, `exit "$_exit_rc"` at end of script.
+
+`./ralph.sh --self-test` exits 0 with all four PASS lines.
+
+Watch-outs for next iterations:
+- The stub tests create real reports in `reports/` during the fail/impl tests (those stubs are
+  not dry-run). Minor side effect — acceptable.
+- The implement-mode test uses a local bare repo as "remote"; `gh pr create` fails (just a warn).
+  That warning is intentional and harmless.
