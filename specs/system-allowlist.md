@@ -1,6 +1,6 @@
 # System: tool allowlist audit
 
-status: draft
+status: approved
 
 ## What
 Audit and correct `ALLOWED` in `ralph.sh` and the guidance in `PROMPT.md` so they are mutually
@@ -42,6 +42,6 @@ definition contains it). Cheap and dependency-free.
 - `grep -i 'sub-agent' agent-loop/PROMPT.md` returns nothing (or shows the corrected text)
 
 ## Progress
-- [ ] Add `TodoWrite` to `ALLOWED` in `ralph.sh`
-- [ ] Update sub-agent guidance in `agent-loop/PROMPT.md`
-- [ ] Add `--self-test` assertion that ALLOWED contains `TodoWrite`
+- [x] Add `TodoWrite` to `ALLOWED` in `ralph.sh`
+- [x] Update sub-agent guidance in `agent-loop/PROMPT.md`
+- [x] Add `--self-test` assertion that ALLOWED contains `TodoWrite`

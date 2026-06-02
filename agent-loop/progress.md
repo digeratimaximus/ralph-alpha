@@ -468,3 +468,13 @@ Watch-outs for next iterations:
   not dry-run). Minor side effect — acceptable.
 - The implement-mode test uses a local bare repo as "remote"; `gh pr create` fails (just a warn).
   That warning is intentional and harmless.
+## 2026-05-25 — implement: system-allowlist (branch: system/allowlist)
+
+Added `TodoWrite` to `ALLOWED` in `ralph.sh` so task-tracking calls are not denied. Updated
+`agent-loop/PROMPT.md` to replace "use sub-agents freely" with a direct instruction to search
+via `Grep`, `Glob`, and `Read`. Added one `--self-test` assertion (`grep -q 'TodoWrite'`) to
+verify the allowlist entry is present. `./ralph.sh --self-test` exits 0.
+
+Watch-outs for next iterations:
+- `system-self-build.md` (item 1) is still an open PR on branch `system/self-build` — merge it
+  before item 3 (launchd install) to minimise conflicts, as both touch `ralph.sh`.
