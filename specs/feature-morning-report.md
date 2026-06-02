@@ -1,6 +1,6 @@
 # Feature: morning report enrichment
 
-status: draft
+status: approved
 
 ## What
 After each iteration, ralph.sh appends richer structured data to the run report
@@ -58,8 +58,8 @@ automated assertion for formatting, only for crash-free execution.
    - A `## PRs opened` section (empty in spec-mode; populated in implement-mode).
 
 ## Progress
-- [ ] Per-iteration diff stat appended after back-pressure passes
-- [ ] Unapproved-specs list in wrap-up section
-- [ ] Cost line in report — read from state.json (requires system-cost-tracking)
-- [ ] PR URL capture from `gh pr create` stdout
-- [ ] `--self-test` and `--dry-run` still pass
+- [x] Per-iteration diff stat appended after back-pressure passes
+- [x] Unapproved-specs list in wrap-up section
+- [x] Cost line in report — read from state.json (requires system-cost-tracking)
+- [x] PR URL capture from `gh pr create` stdout
+- [x] `--self-test` and `--dry-run` still pass

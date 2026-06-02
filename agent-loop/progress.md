@@ -493,3 +493,31 @@ Watch-outs for next iterations:
   (cost-tracking, multi-project).
 - The launchd assertions land on main's version of ralph.sh; the system-allowlist PR adds the TodoWrite
   assertion separately — they'll merge cleanly (no overlap in the --self-test block).
+## 2026-05-26 — implement: feature-morning-report (MODE=implement, branch: feature/morning-report)
+
+Item 4 from the backlog (next after system-self-build, system-allowlist, system-launchd-install,
+system-cost-tracking — all implemented on their respective branches, none yet merged to main).
+
+All changes are in `ralph.sh` only (spec: no new files):
+
+- **Per-iteration diff stat**: after back-pressure passes, appends `### Diff (iter N)` block with
+  `git diff --stat HEAD~1 HEAD`. Guarded by `rev-parse HEAD~1` so initial commits don't blow up.
+- **PR URL capture**: changed `gh pr create` from dumping all output to the report to capturing
+  stdout (the URL) into a temp file (`$_pr_log`); stderr still goes to `$REPORT`. URLs are written
+  under `## PRs opened` in wrap-up.
+- **Unapproved-specs list**: wrap-up now walks `$REPO/specs/*.md`, skips README.md, and emits
+  filenames not found as exact-line matches in `specs/approved.txt` under `## Action required`.
+- **Cost line**: wrap-up reads `cost_usd` from `state.json` for the current run TS via jq;
+  omits the line silently if jq is absent or no matching entry (forward-compatible with
+  cost-tracking not being merged yet).
+- **Cleanup**: `_pr_log` temp file is removed after wrap-up, outside the DRY_RUN guard.
+
+`./ralph.sh --self-test` exits 0.
+
+Watch-outs for the human reviewer:
+- This branch is from main, which predates system-self-build, system-allowlist, system-launchd-install,
+  and system-cost-tracking. Merging all branches will require conflict resolution in `ralph.sh` and
+  `agent-loop/progress.md`. Suggested merge order: self-build, allowlist, launchd-install,
+  cost-tracking, morning-report to minimize conflicts.
+- `cat "$_pr_log"` inside the compound-redirect block may trigger SC2002 in strict shellcheck;
+  tested at `-S warning` level and passes.
