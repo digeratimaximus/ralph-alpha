@@ -1,6 +1,6 @@
 # Feature: run-completion notification
 
-status: draft
+status: approved → implemented
 
 ## What
 At the end of each `ralph.sh` session (success or failure), post a macOS Notification
@@ -50,7 +50,7 @@ Functional correctness is verified manually (notification appears on screen).
 3. Verify the notification body contains iteration count and "report:" path.
 
 ## Progress
-- [ ] `notify_done()` helper added to `ralph.sh`
-- [ ] Called at end of session wrap-up with summary string
-- [ ] `osascript` availability guard in place
-- [ ] `--self-test` confirms `notify_done` is defined and `bash -n` passes
+- [x] `notify_done()` helper added to `ralph.sh`
+- [x] Called at end of session wrap-up with summary string
+- [x] `osascript` availability guard in place
+- [x] `--self-test` confirms `notify_done` is defined and `bash -n` passes

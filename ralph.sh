@@ -133,6 +133,7 @@ if [ "$SELF_TEST" -eq 1 ]; then
   fi
 
   grep -q 'TodoWrite' "$HERE/ralph.sh"  || { echo "FAIL: TodoWrite missing from ALLOWED"; ok=0; }
+  grep -q 'notify_done()' "$HERE/ralph.sh" || { echo "FAIL: notify_done() missing from ralph.sh"; ok=0; }
   bash -n "$HERE/install-launchd.sh" || { echo "FAIL: install-launchd.sh has a syntax error"; ok=0; }
   command -v shellcheck >/dev/null 2>&1 && { shellcheck -S warning "$HERE/install-launchd.sh" || { echo "FAIL: shellcheck install-launchd.sh"; ok=0; }; }
   if command -v xmllint >/dev/null 2>&1; then
@@ -183,6 +184,12 @@ STATE="$REPO/agent-loop/state.json"
 DEADLINE=$(( $(date +%s) + TIME_BUDGET_SECONDS ))
 
 log() { printf '%s  %s\n' "$(date +%H:%M:%S)" "$*"; [ "$DRY_RUN" -eq 0 ] && printf -- '- %s\n' "$*" >> "$REPORT" || true; }
+
+notify_done() {
+  local msg="$1"
+  command -v osascript >/dev/null 2>&1 || return 0
+  osascript -e "display notification \"$msg\" with title \"Ralph\" sound name \"Glass\""
+}
 
 [ "$DRY_RUN" -eq 0 ] && { mkdir -p "$HERE/reports"; {
   echo "# ralph run — $TS"
@@ -400,4 +407,5 @@ fi
 
 rm -f "$_pr_log" 2>/dev/null || true
 log "done."
+notify_done "$did iters | $fails failed | est \$${session_cost_total} | report: $(basename "$REPORT")"
 exit "$_exit_rc"

@@ -521,3 +521,31 @@ Watch-outs for the human reviewer:
   cost-tracking, morning-report to minimize conflicts.
 - `cat "$_pr_log"` inside the compound-redirect block may trigger SC2002 in strict shellcheck;
   tested at `-S warning` level and passes.
+
+## 2026-06-03 — implement: feature-notification (branch: feature/notification)
+
+Item 8 from the backlog (`feature-notification.md`). Next approved item after the already-shipped
+items 1–5 and regression-harness. Branch `feature/notification` created from current `main` (which
+already has PRs 1–5 merged: system-self-build, system-allowlist, system-launchd-install,
+system-cost-tracking, feature-morning-report).
+
+All changes in `ralph.sh` only (spec: no new files):
+
+- **`notify_done()` helper**: added after `log()` definition. Uses `command -v osascript` guard
+  to silently no-op on non-macOS. Posts a Notification Center alert via:
+  `osascript -e "display notification \"$msg\" with title \"Ralph\" sound name \"Glass\""`.
+- **Called at wrap-up end**: after `log "done."`, before `exit "$_exit_rc"`. Message format:
+  `"$did iters | $fails failed | est $${session_cost_total} | report: <basename>"`.
+  Uses `session_cost_total` (populated by cost-tracking, already merged) rather than
+  the placeholder `${COST_EST:-?}` described in the spec.
+- **`--self-test` assertion**: `grep -q 'notify_done()' "$HERE/ralph.sh"` added before the
+  launchd/plist assertions. Fires only on failure (no PASS echo — consistent with existing pattern).
+
+`./ralph.sh --self-test` exits 0 ("self-test OK").
+
+Watch-outs for the human reviewer:
+- Functional correctness (notification actually appears) must be verified manually per the spec's
+  Verification section: run `./ralph.sh --dry-run` (with ralph.env set) and check Notification Center.
+- `notify_done` is called outside the `DRY_RUN` guard so it fires in both dry-run and normal mode.
+- Next approved items: `system-tag-prune.md` (item 9) and `system-multi-project.md` (item 6 — last,
+  full ralph.sh refactor).
