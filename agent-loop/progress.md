@@ -234,3 +234,19 @@ Watch-outs for the human reviewer:
 - `gh` is installed on the machine; called for the fixture implement-mode run, fails gracefully
   (stub-origin not a real GitHub remote) with `log "warn:"`. Does not fail the run.
 - `--regression-test` creates 1–2 small report files in `reports/` per invocation.
+
+## 2026-06-03 — implement: verified feature-regression-harness (branch + PR already existed)
+
+Item 7 (`feature-regression-harness.md`) — highest-priority approved item per `specs/approved.txt`
+(which now contains `feature-regression-harness.md`, `system-tag-prune.md`, `feature-notification.md`).
+
+Found `feature/regression-harness` branch already existed with all four Progress checkboxes checked
+and PR #6 open (2026-05-26). Switched to branch, ran `./ralph.sh --self-test`:
+  regression-test OK
+  self-test OK
+
+Updated spec status line from `draft` to `approved → implemented`. This iteration is the verification
+pass only — no new code.
+
+PR #6 is open — human should review and merge. After merge, next approved items are `feature-notification.md`
+(item 8) and `system-tag-prune.md` (item 9); next iteration should verify their branches too.
