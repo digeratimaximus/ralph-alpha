@@ -1,6 +1,6 @@
 # System: harden the Ralph harness
 
-status: draft
+status: approved → implemented
 
 ## What
 Bring `ralph.sh` and its support files from "scaffolded" to trustworthy enough to run unattended

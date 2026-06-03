@@ -232,3 +232,14 @@ Watch-outs for next iterations:
   not dry-run). Minor side effect — acceptable.
 - The implement-mode test uses a local bare repo as "remote"; `gh pr create` fails (just a warn).
   That warning is intentional and harmless.
+
+## 2026-06-03 — verify: system-self-build (branch: system/self-build, PR opened)
+
+Item 1 (`system-self-build.md`) — highest-priority approved item not yet shipped.
+
+Found `system/self-build` branch already existed with all five Progress checkboxes checked (implemented
+2026-05-25). Switched to branch, ran `./ralph.sh --self-test`: all four PASS lines emitted, exits 0.
+
+Updated spec status from `draft` to `approved → implemented`. Opened PR.
+
+Next iteration should verify `system/allowlist` (item 2) — branch `system/allowlist` already exists.
