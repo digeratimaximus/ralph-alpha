@@ -78,3 +78,10 @@ Then install the nightly job:
 3. **Week 2:** `MODE=implement`, `MAX_ITERS=1`, only tiny approved items. Review PRs — watch for placeholders, scope creep, "grepped wrong, concluded code doesn't exist."
 4. **Week 3+:** `MAX_ITERS=4`. Add the cost line to the report. Point a second project's env at it if desired.
 5. **Forever:** every failure mode you see → a line in `PROMPT.md`. Tune it "like a guitar."
+
+## Gotchas
+
+- **Headless `claude -p` with `--output-format stream-json` requires `--verbose`.** Without it the CLI
+  exits 1 at arg-parse (`...stream-json requires --verbose`) *before any work runs* — so every iteration
+  fails and the loop stops after `MAX_CONSEC_FAILURES`. First hit 2026-06-02, when stream-json was added
+  for cost parsing without the flag. The `claude -p` invocation lives in `run_claude()` in `ralph.sh`.

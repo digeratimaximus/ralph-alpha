@@ -227,16 +227,20 @@ ITER_LOG=""  # path to stream-json capture for current iteration; set by run_cla
 run_claude() {
   local n="$1"
   if [ "$DRY_RUN" -eq 1 ]; then
-    log "[dry-run] iter $n: would run: claude -p (PROMPT.md) --model $MODEL --permission-mode acceptEdits --allowed-tools '$ALLOWED' --max-budget-usd $MAX_BUDGET_USD --output-format stream-json"
+    log "[dry-run] iter $n: would run: claude -p (PROMPT.md) --model $MODEL --permission-mode acceptEdits --allowed-tools '$ALLOWED' --max-budget-usd $MAX_BUDGET_USD --verbose --output-format stream-json"
     return 0
   fi
   ITER_LOG="$(mktemp)"
+  # `-p` + `--output-format stream-json` REQUIRES `--verbose`, or the CLI exits 1 at arg-parse
+  # ("...stream-json requires --verbose") before any work runs — every iteration then fails and
+  # the loop stops after MAX_CONSEC_FAILURES. Do not remove --verbose. (Regression seen 2026-06-02.)
   printf '%s\n' "$PROMPT_BODY" | "$CLAUDE_BIN" -p \
     --model "$MODEL" \
     --append-system-prompt "$SYS_EXTRA" \
     --permission-mode acceptEdits \
     --allowed-tools "$ALLOWED" \
     --max-budget-usd "$MAX_BUDGET_USD" \
+    --verbose \
     --output-format stream-json \
     | tee "$ITER_LOG"
 }
