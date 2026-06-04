@@ -141,6 +141,7 @@ if [ "$SELF_TEST" -eq 1 ]; then
     plutil -lint "$HERE/com.davidmarsh.ralph.plist" >/dev/null 2>&1 || { echo "FAIL: plist invalid (plutil)"; ok=0; }
   fi
   grep -q '__RALPH_DIR__' "$HERE/com.davidmarsh.ralph.plist" || { echo "FAIL: __RALPH_DIR__ placeholder missing from plist template"; ok=0; }
+  grep -q 'prune_old_tags' "$HERE/ralph.sh" || { echo "FAIL: prune_old_tags missing from ralph.sh"; ok=0; }
   [ "$ok" -eq 1 ] && { echo "self-test OK"; exit 0; } || exit 1
 fi
 
@@ -162,6 +163,7 @@ source "$ENV_FILE"
 : "${TIME_BUDGET_SECONDS:=10800}"
 : "${MAX_BUDGET_USD:=5}"
 : "${COST_CEILING_USD:=20.0}"
+: "${TAG_KEEP:=20}"
 : "${TEST_CMD:?TEST_CMD not set in env}"
 : "${REMOTE:=origin}"
 : "${MAIN_BRANCH:=main}"
@@ -223,6 +225,18 @@ Before concluding code does not exist, grep for it. No placeholder implementatio
 ALLOWED='Read Edit Write Grep Glob TodoWrite Bash(git *) Bash(./ralph.sh *) Bash(shellcheck *) Bash(bash -n *) Bash(ls *) Bash(cat *) Bash(rg *) Bash(gh pr *)'
 
 ITER_LOG=""  # path to stream-json capture for current iteration; set by run_claude()
+
+prune_old_tags() {
+  local tags
+  tags="$(git -C "$REPO" tag -l 'ralph-pre-iter-*' | sort)"
+  local count
+  count="$(echo "$tags" | grep -c . 2>/dev/null || true)"
+  if [ "$count" -le "$TAG_KEEP" ]; then return; fi
+  local to_delete
+  to_delete="$(echo "$tags" | head -n $(( count - TAG_KEEP )))"
+  echo "$to_delete" | xargs git -C "$REPO" tag -d >/dev/null 2>&1 || true
+  log "pruned $(( count - TAG_KEEP )) old rollback tag(s); kept $TAG_KEEP"
+}
 
 run_claude() {
   local n="$1"
@@ -396,6 +410,7 @@ if [ "$DRY_RUN" -eq 0 ]; then
   } >> "$REPORT"
   log "report written: $REPORT"
   [ -f "$STATE" ] || echo '{"schema":1,"runs":[]}' > "$STATE"
+  prune_old_tags
 fi
 
 rm -f "$_pr_log" 2>/dev/null || true
