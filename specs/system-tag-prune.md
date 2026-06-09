@@ -1,6 +1,6 @@
 # System: pre-iteration git tag pruning
 
-status: draft
+status: approved → implemented
 
 ## What
 Add a `prune_old_tags()` function to `ralph.sh` that deletes all but the most recent
@@ -38,8 +38,8 @@ grep -q 'prune_old_tags' "$HERE/ralph.sh" || { echo "FAIL: prune_old_tags missin
 - `./ralph.sh --dry-run` does not call `prune_old_tags` (log shows no prune line)
 
 ## Progress
-- [ ] Add `TAG_KEEP` default to config block in `ralph.sh`
-- [ ] Add `prune_old_tags()` function to `ralph.sh`
-- [ ] Call `prune_old_tags` in wrap-up block (dry-run guarded)
-- [ ] Add `TAG_KEEP=20` (commented) to `ralph.env.example`
-- [ ] Add `--self-test` assertion for `prune_old_tags` presence
+- [x] Add `TAG_KEEP` default to config block in `ralph.sh`
+- [x] Add `prune_old_tags()` function to `ralph.sh`
+- [x] Call `prune_old_tags` in wrap-up block (dry-run guarded)
+- [x] Add `TAG_KEEP=20` (commented) to `ralph.env.example`
+- [x] Add `--self-test` assertion for `prune_old_tags` presence

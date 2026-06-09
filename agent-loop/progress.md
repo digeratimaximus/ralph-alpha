@@ -521,3 +521,25 @@ Watch-outs for the human reviewer:
   cost-tracking, morning-report to minimize conflicts.
 - `cat "$_pr_log"` inside the compound-redirect block may trigger SC2002 in strict shellcheck;
   tested at `-S warning` level and passes.
+
+## 2026-06-04 — implement: system-tag-prune (branch: system/tag-prune)
+
+Item 9 from the backlog. Implemented all 5 tasks from `specs/system-tag-prune.md`.
+
+Changes in `ralph.sh`:
+- Added `: "${TAG_KEEP:=20}"` to the config defaults block.
+- Added `prune_old_tags()` function: lists `ralph-pre-iter-*` tags via `git tag -l | sort`,
+  counts them, and deletes all but the last `$TAG_KEEP` using `xargs git tag -d`. Logs a
+  one-liner when tags are actually pruned; no-ops silently when count <= TAG_KEEP.
+- Called `prune_old_tags` at end of the wrap-up block, inside the `DRY_RUN=0` guard.
+- Added `--self-test` assertion: `grep -q 'prune_old_tags' "$HERE/ralph.sh"`.
+
+Changes in `ralph.env.example`: added commented `# TAG_KEEP=20` line with brief comment.
+
+`./ralph.sh --self-test` exits 0.
+
+Watch-outs for the human reviewer:
+- `xargs git tag -d` with an empty tag list (when count <= TAG_KEEP) is prevented by the
+  early `return` guard, so no spurious error output.
+- `grep -c .` counts non-empty lines; if `git tag -l` returns nothing, count is 0 and the
+  function returns immediately.

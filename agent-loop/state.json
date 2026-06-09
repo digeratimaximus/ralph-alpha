@@ -1,5 +1,27 @@
 {
   "schema": 1,
   "note": "Updated by ralph.sh after each run. runs[] entries: {ts, mode, iters, fails, cost_estimate_usd}.",
-  "runs": []
+  "runs": [
+    {
+      "ts": "20260603-010005",
+      "mode": "implement",
+      "iter": 1,
+      "fails": 0,
+      "cost_usd": 0
+    },
+    {
+      "ts": "20260603-010005",
+      "mode": "implement",
+      "iter": 2,
+      "fails": 0,
+      "cost_usd": 0
+    },
+    {
+      "ts": "20260603-010005",
+      "mode": "implement",
+      "iter": 3,
+      "fails": 0,
+      "cost_usd": 0
+    }
+  ]
 }
