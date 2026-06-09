@@ -570,3 +570,46 @@ Watch-outs for the human reviewer:
 - `notify_done` is called outside the `DRY_RUN` guard so it fires in both dry-run and normal mode.
 - Next approved items: `system-tag-prune.md` (item 9) and `system-multi-project.md` (item 6 — last,
   full ralph.sh refactor).
+## 2026-05-26 — implement: feature-regression-harness (MODE=implement, branch: feature/regression-harness)
+
+Item 7 from the backlog. Items 1–5 have branches (not yet merged); item 6 (multi-project) skipped
+per dependency note — it refactors all of ralph.sh and should wait until 1, 2, 5 are merged.
+
+Three new files + ralph.sh changes:
+
+- **`tests/regression/setup-fixture.sh`**: initialises a minimal git repo (agent-loop/, specs/,
+  one approved spec, one initial commit) in a given temp dir. Called by `--regression-test`.
+- **`tests/regression/stub-spec-claude.sh`**: spec-mode stub — consumes stdin, writes a new spec,
+  commits to main. All CLI flags from ralph.sh are silently ignored.
+- **`tests/regression/stub-implement-claude.sh`**: implement-mode stub — creates `feature/stub-test`
+  branch, commits there. Never touches main.
+- **`ralph.sh --regression-test`**: runs setup-fixture twice (spec + implement); asserts spec-mode
+  leaves HEAD on main with a new specs/ file; implement-mode leaves HEAD off main and main SHA
+  unchanged. `chmod +x` on stubs is called inside the block.
+- **`ralph.sh --self-test` addition**: calls `./ralph.sh --regression-test` as one assertion.
+
+`./ralph.sh --regression-test` exits 0 ("regression-test OK").
+`./ralph.sh --self-test` exits 0 ("self-test OK").
+
+Watch-outs for the human reviewer:
+- Branch is from main (predates other feature branches). Conflicts with other branches should be
+  minimal — regression-harness only adds new content to ralph.sh (no overlapping edits).
+- `gh` is installed on the machine; called for the fixture implement-mode run, fails gracefully
+  (stub-origin not a real GitHub remote) with `log "warn:"`. Does not fail the run.
+- `--regression-test` creates 1–2 small report files in `reports/` per invocation.
+
+## 2026-06-03 — implement: verified feature-regression-harness (branch + PR already existed)
+
+Item 7 (`feature-regression-harness.md`) — highest-priority approved item per `specs/approved.txt`
+(which now contains `feature-regression-harness.md`, `system-tag-prune.md`, `feature-notification.md`).
+
+Found `feature/regression-harness` branch already existed with all four Progress checkboxes checked
+and PR #6 open (2026-05-26). Switched to branch, ran `./ralph.sh --self-test`:
+  regression-test OK
+  self-test OK
+
+Updated spec status line from `draft` to `approved → implemented`. This iteration is the verification
+pass only — no new code.
+
+PR #6 is open — human should review and merge. After merge, next approved items are `feature-notification.md`
+(item 8) and `system-tag-prune.md` (item 9); next iteration should verify their branches too.

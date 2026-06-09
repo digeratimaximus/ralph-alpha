@@ -1,6 +1,6 @@
 # PROMPT.md regression harness
 
-status: draft
+status: approved → implemented (PR #6 open, awaiting merge)
 
 ## What
 A `tests/regression/` directory with fixture repo state and stub-claude scripts, plus a `./ralph.sh --regression-test` flag that replays one canned spec-mode and one canned implement-mode iteration, then asserts invariants (right item chosen, `main` not mutated by implement-mode, spec has correct format).
@@ -33,7 +33,7 @@ Tear down fixture repo after each sub-run to isolate.
 - Delete `tests/regression/stub-spec-claude.sh` and confirm `--regression-test` exits non-zero.
 
 ## Progress
-- [ ] Write `tests/regression/setup-fixture.sh`
-- [ ] Write `tests/regression/stub-spec-claude.sh` and `stub-implement-claude.sh`
-- [ ] Add `--regression-test` flag to `ralph.sh`
-- [ ] Add regression assertion to `--self-test`
+- [x] Write `tests/regression/setup-fixture.sh`
+- [x] Write `tests/regression/stub-spec-claude.sh` and `stub-implement-claude.sh`
+- [x] Add `--regression-test` flag to `ralph.sh`
+- [x] Add regression assertion to `--self-test`
