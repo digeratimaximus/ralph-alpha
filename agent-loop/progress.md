@@ -624,3 +624,18 @@ Found `system/self-build` branch already existed with all five Progress checkbox
 Updated spec status from `draft` to `approved → implemented`. Opened PR.
 
 Next iteration should verify `system/allowlist` (item 2) — branch `system/allowlist` already exists.
+
+## 2026-06-09 — implement: all approved items already shipped (MODE=implement, Ralph loop)
+
+`specs/approved.txt` contains three filenames: `feature-regression-harness.md`,
+`system-tag-prune.md`, `feature-notification.md`. All three have all Progress checkboxes
+checked and their branches are already merged to main (confirmed via git log: commits
+11e7052, b6132ac, 2a98c2c). No approved item has unchecked Progress checkboxes.
+
+Loop is blocked on human approval gate — to unblock, add at least one filename to
+`specs/approved.txt` for an item that has remaining unchecked Progress work. Remaining
+unshipped items:
+  system-launchd-install.md  (item 3)
+  feature-morning-report.md  (item 4)
+  system-cost-tracking.md    (item 5)
+  system-multi-project.md    (item 6 — approve last, full ralph.sh refactor)
