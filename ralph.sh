@@ -294,7 +294,7 @@ for i in $(seq 1 "$MAX_ITERS"); do
   # Parse cost from stream-json output
   iter_cost=0
   if [ "$DRY_RUN" -eq 0 ] && [ -n "$ITER_LOG" ] && [ -f "$ITER_LOG" ] && command -v jq >/dev/null 2>&1; then
-    _parsed=$(jq -r 'select(.type=="result") | .cost_usd // 0' "$ITER_LOG" 2>/dev/null | tail -1)
+    _parsed=$(jq -r 'select(.type=="result") | .total_cost_usd // .cost_usd // 0' "$ITER_LOG" 2>/dev/null | tail -1)
     iter_cost="${_parsed:-0}"
     session_cost_total=$(awk "BEGIN{print $session_cost_total + $iter_cost}")
     rm -f "$ITER_LOG"
@@ -333,6 +333,15 @@ for i in $(seq 1 "$MAX_ITERS"); do
           if [ -n "$_pr_url" ]; then
             printf -- '- %s\n' "$_pr_url" >> "$_pr_log"
             log "opened PR: $_pr_url"
+            # Auto-merge (David opted in): back-pressure already passed → green.
+            if gh pr merge "$_pr_url" --squash --delete-branch --auto >>"$REPORT" 2>&1 \
+               || gh pr merge "$_pr_url" --squash --delete-branch >>"$REPORT" 2>&1; then
+              log "auto-merged (squash): $_pr_url"
+              git -C "$REPO" checkout "$MAIN_BRANCH" >>"$REPORT" 2>&1 || true
+              git -C "$REPO" pull --ff-only "$REMOTE" "$MAIN_BRANCH" >>"$REPORT" 2>&1 || true
+            else
+              log "warn: auto-merge failed for $_pr_url — leaving it open for manual merge"
+            fi
           else
             log "warn: gh pr create failed for $cur (open it manually)"
           fi
