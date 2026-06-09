@@ -655,3 +655,15 @@ work. Remaining unshipped items (in suggested approval order):
   feature-morning-report.md  (item 4)
   system-cost-tracking.md    (item 5, approve before item 4)
   system-multi-project.md    (item 6 — approve last, full ralph.sh refactor)
+
+## 2026-06-09 (third run) — implement: all approved items already shipped, loop blocked on human approval gate
+
+`specs/approved.txt` still contains only `feature-regression-harness.md`,
+`system-tag-prune.md`, and `feature-notification.md`. All three are fully implemented and
+merged. No approved item has unchecked Progress checkboxes — nothing to do this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — approve after system-cost-tracking)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
