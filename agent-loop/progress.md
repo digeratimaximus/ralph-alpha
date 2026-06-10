@@ -667,3 +667,16 @@ To unblock: add at least one of the following to `specs/approved.txt`:
   system-cost-tracking.md    (item 5 — approve before feature-morning-report)
   feature-morning-report.md  (item 4 — approve after system-cost-tracking)
   system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-10 — implement: all approved items already shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains three filenames: `feature-regression-harness.md`,
+`system-tag-prune.md`, `feature-notification.md`. All three have all Progress checkboxes
+checked and are confirmed shipped (no unchecked `- [ ]` in any of those spec files).
+No approved item has remaining work — nothing to implement this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — approve after system-cost-tracking)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
