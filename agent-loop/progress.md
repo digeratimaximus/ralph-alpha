@@ -852,3 +852,14 @@ To unblock: add at least one of the following to `specs/approved.txt`:
 `feature-notification.md` — all shipped, no unchecked work. Loop cannot proceed.
 
 To unblock: add at least one filename to `specs/approved.txt` (suggested: `system-launchd-install.md`).
+
+## 2026-06-15 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` unchanged: `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md` — all shipped, no unchecked work. Loop cannot proceed.
+
+To unblock: add at least one filename to `specs/approved.txt`. Suggested:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
