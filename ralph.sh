@@ -2,11 +2,12 @@
 # ralph.sh — a self-hosting Ralph loop. See README.md.
 #
 # Usage:
-#   ./ralph.sh                 run the loop using ./ralph.env
-#   ./ralph.sh --env path.env  run with a specific env file
-#   ./ralph.sh --dry-run          print what each iteration WOULD do; never calls claude, never writes
-#   ./ralph.sh --self-test        lint + sanity checks only; exit 0 if healthy (used as TEST_CMD for self-hosting)
-#   ./ralph.sh --regression-test  replay fixture spec/implement runs with stubs; assert safety invariants
+#   ./ralph.sh                       run the loop using ./ralph.env
+#   ./ralph.sh --env path.env        run with a specific env file
+#   ./ralph.sh --projects-dir <dir>  run all *.env files in dir sequentially (skip *.disabled)
+#   ./ralph.sh --dry-run             print what each iteration WOULD do; never calls claude, never writes
+#   ./ralph.sh --self-test           lint + sanity checks only; exit 0 if healthy (used as TEST_CMD for self-hosting)
+#   ./ralph.sh --regression-test     replay fixture spec/implement runs with stubs; assert safety invariants
 #
 # Safety: never merges; never pushes MAIN_BRANCH (spec markdown excepted); per-iteration git tag rollback;
 # PAUSE file kill switch; MAX_ITERS / MAX_CONSEC_FAILURES / TIME_BUDGET_SECONDS circuit breakers.
@@ -18,14 +19,16 @@ ENV_FILE="$HERE/ralph.env"
 DRY_RUN=0
 SELF_TEST=0
 REGRESSION_TEST=0
+PROJECTS_DIR=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --env) ENV_FILE="$2"; shift 2 ;;
+    --projects-dir) PROJECTS_DIR="$2"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     --self-test) SELF_TEST=1; shift ;;
     --regression-test) REGRESSION_TEST=1; shift ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -146,6 +149,15 @@ if [ "$SELF_TEST" -eq 1 ]; then
   fi
   grep -q '__RALPH_DIR__' "$HERE/com.davidmarsh.ralph.plist" || { echo "FAIL: __RALPH_DIR__ placeholder missing from plist template"; ok=0; }
   grep -q 'prune_old_tags' "$HERE/ralph.sh" || { echo "FAIL: prune_old_tags missing from ralph.sh"; ok=0; }
+
+  # projects.d/ validation: if directory exists, verify each *.env is bash-parseable
+  if [ -d "$HERE/projects.d" ]; then
+    for _pf in "$HERE/projects.d/"*.env; do
+      [ -f "$_pf" ] || continue
+      bash -n "$_pf" || { echo "FAIL: projects.d/$(basename "$_pf") has a syntax error"; ok=0; }
+    done
+  fi
+
   "$HERE/ralph.sh" --regression-test       || { echo "FAIL: --regression-test"; ok=0; }
   [ "$ok" -eq 1 ] && { echo "self-test OK"; exit 0; } || exit 1
 fi
@@ -225,44 +237,8 @@ EOF
 fi
 
 # ---------------------------------------------------------------------------
-# Load config
+# Helper functions — referenced by run_project(); use globals set per-project.
 # ---------------------------------------------------------------------------
-if [ ! -f "$ENV_FILE" ]; then
-  echo "no env file at $ENV_FILE — copy ralph.env.example to ralph.env and edit it" >&2
-  exit 2
-fi
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-
-: "${REPO:?REPO not set in env}"
-: "${MODE:=spec}"
-: "${MODEL:=claude-sonnet-4-6}"
-: "${MAX_ITERS:=1}"
-: "${MAX_CONSEC_FAILURES:=2}"
-: "${TIME_BUDGET_SECONDS:=10800}"
-: "${MAX_BUDGET_USD:=5}"
-: "${COST_CEILING_USD:=20.0}"
-: "${TAG_KEEP:=20}"
-: "${TEST_CMD:?TEST_CMD not set in env}"
-: "${REMOTE:=origin}"
-: "${MAIN_BRANCH:=main}"
-
-case "$MODE" in spec|implement) ;; *) echo "MODE must be spec|implement, got '$MODE'" >&2; exit 2 ;; esac
-
-# Resolve the claude CLI — launchd's PATH may not include ~/.local/bin. Override with CLAUDE_BIN in the env if needed.
-: "${CLAUDE_BIN:=}"
-if [ -z "$CLAUDE_BIN" ]; then
-  if command -v claude >/dev/null 2>&1; then CLAUDE_BIN="$(command -v claude)"
-  elif [ -x "$HOME/.local/bin/claude" ]; then CLAUDE_BIN="$HOME/.local/bin/claude"
-  else echo "cannot find the 'claude' CLI — set CLAUDE_BIN in $ENV_FILE" >&2; exit 2; fi
-fi
-
-TS="$(date +%Y%m%d-%H%M%S)"
-REPORT="$HERE/reports/${TS}-$(basename "$REPO")-${MODE}.md"
-PROGRESS="$REPO/agent-loop/progress.md"
-STATE="$REPO/agent-loop/state.json"
-DEADLINE=$(( $(date +%s) + TIME_BUDGET_SECONDS ))
-
 log() { printf '%s  %s\n' "$(date +%H:%M:%S)" "$*"; [ "$DRY_RUN" -eq 0 ] && printf -- '- %s\n' "$*" >> "$REPORT" || true; }
 
 notify_done() {
@@ -271,53 +247,11 @@ notify_done() {
   osascript -e "display notification \"$msg\" with title \"Ralph\" sound name \"Glass\""
 }
 
-[ "$DRY_RUN" -eq 0 ] && { mkdir -p "$HERE/reports"; {
-  echo "# ralph run — $TS"
-  echo
-  echo "- repo: \`$REPO\`"
-  echo "- mode: \`$MODE\`  model: \`$MODEL\`  max_iters: $MAX_ITERS  time_budget: ${TIME_BUDGET_SECONDS}s"
-  echo
-  echo "## Iterations"
-} > "$REPORT"; }
-
-cd "$REPO" || { echo "cannot cd to REPO=$REPO" >&2; exit 2; }
-
-# ---------------------------------------------------------------------------
-# Kill switch
-# ---------------------------------------------------------------------------
-if [ -f "$REPO/PAUSE" ]; then log "PAUSE file present at $REPO/PAUSE — exiting without doing anything"; exit 0; fi
-
-# ---------------------------------------------------------------------------
-# Sync main
-# ---------------------------------------------------------------------------
-if [ "$DRY_RUN" -eq 0 ]; then
-  git -C "$REPO" fetch --quiet "$REMOTE" 2>/dev/null || log "warn: git fetch failed (no remote yet?) — continuing"
-  git -C "$REPO" checkout --quiet "$MAIN_BRANCH" 2>/dev/null || log "warn: could not checkout $MAIN_BRANCH"
-  git -C "$REPO" pull --quiet --ff-only "$REMOTE" "$MAIN_BRANCH" 2>/dev/null || true
-fi
-
-# ---------------------------------------------------------------------------
-# The instruction set for each iteration
-# ---------------------------------------------------------------------------
-PROMPT_BODY="$(cat "$REPO/agent-loop/PROMPT.md")"
-SYS_EXTRA="MODE=$MODE. This is one iteration of a Ralph loop. Do EXACTLY ONE backlog item and then STOP — \
-do not start a second item. Read agent-loop/METHOD.md and specs/README.md and agent-loop/progress.md first. \
-Before concluding code does not exist, grep for it. No placeholder implementations."
-
-# Tool allowlist for the agent. Space-separated, Claude Code permission syntax.
-# Edits are auto-accepted (--permission-mode acceptEdits); these cover the Bash commands an iteration needs.
-# Anything not listed gets denied — that's the guardrail; the iteration adapts or fails and is rolled back.
-ALLOWED='Read Edit Write Grep Glob TodoWrite Bash(git *) Bash(./ralph.sh *) Bash(shellcheck *) Bash(bash -n *) Bash(ls *) Bash(cat *) Bash(rg *) Bash(gh pr *)'
-
-ITER_LOG=""  # path to stream-json capture for current iteration; set by run_claude()
-
 prune_old_tags() {
-  local tags
+  local tags count to_delete
   tags="$(git -C "$REPO" tag -l 'ralph-pre-iter-*' | sort)"
-  local count
   count="$(echo "$tags" | grep -c . 2>/dev/null || true)"
   if [ "$count" -le "$TAG_KEEP" ]; then return; fi
-  local to_delete
   to_delete="$(echo "$tags" | head -n $(( count - TAG_KEEP )))"
   echo "$to_delete" | xargs git -C "$REPO" tag -d >/dev/null 2>&1 || true
   log "pruned $(( count - TAG_KEEP )) old rollback tag(s); kept $TAG_KEEP"
@@ -345,169 +279,312 @@ run_claude() {
 }
 
 # ---------------------------------------------------------------------------
-# The loop
+# run_project <env-file>: source config, run loop, wrap up.
+# DEADLINE must be set by the caller if sharing across projects; otherwise
+# run_project computes it from TIME_BUDGET_SECONDS in the env file.
 # ---------------------------------------------------------------------------
-fails=0
-did=0
-session_cost_total=0
-_exit_rc=0
-_pr_log=$(mktemp)  # collects PR URLs for the ## PRs opened section
-for i in $(seq 1 "$MAX_ITERS"); do
-  [ -f "$REPO/PAUSE" ]            && { log "PAUSE appeared mid-run — stopping after $did iteration(s)"; break; }
-  [ "$(date +%s)" -gt "$DEADLINE" ] && { log "time budget exhausted — stopping after $did iteration(s)"; break; }
+run_project() {
+  local _env_file="$1"
 
-  # Session cost ceiling check (uses costs already recorded in state.json for today)
-  if [ "$DRY_RUN" -eq 0 ] && command -v jq >/dev/null 2>&1 && [ -f "$STATE" ]; then
-    _today="$(date +%Y%m%d)"
-    _prior_cost=$(jq -r --arg p "$_today" \
-      '[.runs[] | select(.ts | startswith($p)) | .cost_usd // 0] | add // 0' \
-      "$STATE" 2>/dev/null || echo 0)
-    _total_cost=$(awk "BEGIN{print $session_cost_total + ${_prior_cost:-0}}")
-    if awk "BEGIN{exit !($_total_cost >= $COST_CEILING_USD)}"; then
-      log "session cost ceiling reached ($_total_cost >= $COST_CEILING_USD) — stopping the night"
-      break
+  if [ ! -f "$_env_file" ]; then
+    echo "no env file at $_env_file" >&2
+    return 2
+  fi
+
+  # Reset per-project config vars so defaults apply correctly if env file omits them.
+  unset REPO MODE MODEL MAX_ITERS MAX_CONSEC_FAILURES TIME_BUDGET_SECONDS MAX_BUDGET_USD \
+        COST_CEILING_USD TAG_KEEP TEST_CMD REMOTE MAIN_BRANCH CLAUDE_BIN
+
+  # shellcheck disable=SC1090
+  source "$_env_file"
+
+  : "${REPO:?REPO not set in $_env_file}"
+  : "${MODE:=spec}"
+  : "${MODEL:=claude-sonnet-4-6}"
+  : "${MAX_ITERS:=1}"
+  : "${MAX_CONSEC_FAILURES:=2}"
+  : "${TIME_BUDGET_SECONDS:=10800}"
+  : "${MAX_BUDGET_USD:=5}"
+  : "${COST_CEILING_USD:=20.0}"
+  : "${TAG_KEEP:=20}"
+  : "${TEST_CMD:?TEST_CMD not set in $_env_file}"
+  : "${REMOTE:=origin}"
+  : "${MAIN_BRANCH:=main}"
+
+  case "$MODE" in spec|implement) ;; *) echo "MODE must be spec|implement, got '$MODE'" >&2; return 2 ;; esac
+
+  : "${CLAUDE_BIN:=}"
+  if [ -z "$CLAUDE_BIN" ]; then
+    if command -v claude >/dev/null 2>&1; then CLAUDE_BIN="$(command -v claude)"
+    elif [ -x "$HOME/.local/bin/claude" ]; then CLAUDE_BIN="$HOME/.local/bin/claude"
+    else echo "cannot find the 'claude' CLI — set CLAUDE_BIN in $_env_file" >&2; return 2; fi
+  fi
+
+  TS="$(date +%Y%m%d-%H%M%S)"
+  REPORT="$HERE/reports/${TS}-$(basename "$REPO")-${MODE}.md"
+  PROGRESS="$REPO/agent-loop/progress.md"
+  STATE="$REPO/agent-loop/state.json"
+
+  # Use pre-set DEADLINE (multi-project shared budget) or compute from this project's TIME_BUDGET_SECONDS.
+  if [ -z "${DEADLINE:-}" ]; then
+    DEADLINE=$(( $(date +%s) + TIME_BUDGET_SECONDS ))
+  fi
+
+  ITER_LOG=""
+
+  # Tool allowlist for the agent. Space-separated, Claude Code permission syntax.
+  # Edits are auto-accepted (--permission-mode acceptEdits); these cover the Bash commands an iteration needs.
+  ALLOWED='Read Edit Write Grep Glob TodoWrite Bash(git *) Bash(./ralph.sh *) Bash(shellcheck *) Bash(bash -n *) Bash(ls *) Bash(cat *) Bash(rg *) Bash(gh pr *)'
+
+  PROMPT_BODY="$(cat "$REPO/agent-loop/PROMPT.md")"
+  SYS_EXTRA="MODE=$MODE. This is one iteration of a Ralph loop. Do EXACTLY ONE backlog item and then STOP — \
+do not start a second item. Read agent-loop/METHOD.md and specs/README.md and agent-loop/progress.md first. \
+Before concluding code does not exist, grep for it. No placeholder implementations."
+
+  [ "$DRY_RUN" -eq 0 ] && { mkdir -p "$HERE/reports"; {
+    echo "# ralph run — $TS"
+    echo
+    echo "- repo: \`$REPO\`"
+    echo "- mode: \`$MODE\`  model: \`$MODEL\`  max_iters: $MAX_ITERS  time_budget: ${TIME_BUDGET_SECONDS}s"
+    echo
+    echo "## Iterations"
+  } > "$REPORT"; }
+
+  # Log project identification now that REPORT is set (safe for log() in both dry-run and live modes).
+  log "[project] $(basename "$_env_file")"
+
+  cd "$REPO" || { echo "cannot cd to REPO=$REPO" >&2; return 2; }
+
+  # ---------------------------------------------------------------------------
+  # Kill switch
+  # ---------------------------------------------------------------------------
+  if [ -f "$REPO/PAUSE" ]; then log "PAUSE file present at $REPO/PAUSE — exiting without doing anything"; return 0; fi
+
+  # ---------------------------------------------------------------------------
+  # Sync main
+  # ---------------------------------------------------------------------------
+  if [ "$DRY_RUN" -eq 0 ]; then
+    git -C "$REPO" fetch --quiet "$REMOTE" 2>/dev/null || log "warn: git fetch failed (no remote yet?) — continuing"
+    git -C "$REPO" checkout --quiet "$MAIN_BRANCH" 2>/dev/null || log "warn: could not checkout $MAIN_BRANCH"
+    git -C "$REPO" pull --quiet --ff-only "$REMOTE" "$MAIN_BRANCH" 2>/dev/null || true
+  fi
+
+  # ---------------------------------------------------------------------------
+  # The loop
+  # ---------------------------------------------------------------------------
+  local fails=0 did=0 _exit_rc=0
+  local session_cost_total=0
+  local _pr_log
+  _pr_log=$(mktemp)
+
+  local i
+  for i in $(seq 1 "$MAX_ITERS"); do
+    [ -f "$REPO/PAUSE" ]              && { log "PAUSE appeared mid-run — stopping after $did iteration(s)"; break; }
+    [ "$(date +%s)" -gt "$DEADLINE" ] && { log "time budget exhausted — stopping after $did iteration(s)"; break; }
+
+    # Session cost ceiling check (uses costs already recorded in state.json for today)
+    if [ "$DRY_RUN" -eq 0 ] && command -v jq >/dev/null 2>&1 && [ -f "$STATE" ]; then
+      local _today _prior_cost _total_cost
+      _today="$(date +%Y%m%d)"
+      _prior_cost=$(jq -r --arg p "$_today" \
+        '[.runs[] | select(.ts | startswith($p)) | .cost_usd // 0] | add // 0' \
+        "$STATE" 2>/dev/null || echo 0)
+      _total_cost=$(awk "BEGIN{print $session_cost_total + ${_prior_cost:-0}}")
+      if awk "BEGIN{exit !($_total_cost >= $COST_CEILING_USD)}"; then
+        log "session cost ceiling reached ($_total_cost >= $COST_CEILING_USD) — stopping the night"
+        break
+      fi
     fi
-  fi
 
-  TAG="ralph-pre-iter-${TS}-${i}"
-  if [ "$DRY_RUN" -eq 0 ]; then git -C "$REPO" tag -f "$TAG" >/dev/null 2>&1 || true; fi
-  log "iter $i/$MAX_ITERS — start (rollback tag: $TAG)"
+    local TAG="ralph-pre-iter-${TS}-${i}"
+    if [ "$DRY_RUN" -eq 0 ]; then git -C "$REPO" tag -f "$TAG" >/dev/null 2>&1 || true; fi
+    log "iter $i/$MAX_ITERS — start (rollback tag: $TAG)"
 
-  run_claude "$i"; rc=$?
-  did=$((did+1))
+    local rc
+    run_claude "$i"; rc=$?
+    did=$((did+1))
 
-  # Parse cost from stream-json output
-  iter_cost=0
-  if [ "$DRY_RUN" -eq 0 ] && [ -n "$ITER_LOG" ] && [ -f "$ITER_LOG" ] && command -v jq >/dev/null 2>&1; then
-    _parsed=$(jq -r 'select(.type=="result") | .total_cost_usd // .cost_usd // 0' "$ITER_LOG" 2>/dev/null | tail -1)
-    iter_cost="${_parsed:-0}"
-    session_cost_total=$(awk "BEGIN{print $session_cost_total + $iter_cost}")
-    rm -f "$ITER_LOG"
-    ITER_LOG=""
-  fi
+    # Parse cost from stream-json output
+    local iter_cost=0 _parsed
+    if [ "$DRY_RUN" -eq 0 ] && [ -n "$ITER_LOG" ] && [ -f "$ITER_LOG" ] && command -v jq >/dev/null 2>&1; then
+      _parsed=$(jq -r 'select(.type=="result") | .total_cost_usd // .cost_usd // 0' "$ITER_LOG" 2>/dev/null | tail -1)
+      iter_cost="${_parsed:-0}"
+      session_cost_total=$(awk "BEGIN{print $session_cost_total + $iter_cost}")
+      rm -f "$ITER_LOG"
+      ITER_LOG=""
+    fi
 
-  if [ "$DRY_RUN" -eq 1 ]; then continue; fi
+    if [ "$DRY_RUN" -eq 1 ]; then continue; fi
 
-  if [ "$rc" -ne 0 ]; then
-    log "iter $i — claude exited $rc; resetting to $TAG"
-    git -C "$REPO" reset --hard "$TAG" >/dev/null 2>&1 || true
-    fails=$((fails+1))
-  else
-    log "iter $i — running back-pressure: $TEST_CMD"
-    if ( cd "$REPO" && eval "$TEST_CMD" ) >>"$REPORT" 2>&1; then
-      log "iter $i — back-pressure PASSED (cost this iter: \$${iter_cost})"
-      fails=0
-      # Record iteration cost in state.json
-      if [ -f "$STATE" ] && command -v jq >/dev/null 2>&1; then
-        jq --arg ts "$TS" --arg mode "$MODE" --argjson iter "$i" \
-           --argjson fails "$fails" --argjson cost "${iter_cost}" \
-           '.runs += [{"ts":$ts,"mode":$mode,"iter":$iter,"fails":$fails,"cost_usd":$cost}]' \
-           "$STATE" > "${STATE}.tmp" && mv "${STATE}.tmp" "$STATE" || true
-      fi
-      # Per-iteration diff stat
-      if git -C "$REPO" rev-parse HEAD~1 >/dev/null 2>&1; then
-        { echo; echo "### Diff (iter $i)"; git -C "$REPO" diff --stat HEAD~1 HEAD 2>/dev/null || true; } >> "$REPORT"
-      fi
-      # implement-mode: if the agent created a branch and committed, push it and open a PR. Never merge.
-      cur="$(git -C "$REPO" rev-parse --abbrev-ref HEAD)"
-      if [ "$MODE" = "implement" ] && [ "$cur" != "$MAIN_BRANCH" ]; then
-        git -C "$REPO" push -u "$REMOTE" "$cur" >>"$REPORT" 2>&1 || log "warn: push failed for $cur"
-        if command -v gh >/dev/null 2>&1; then
-          _pr_url="$(gh pr create --repo "$(git -C "$REPO" remote get-url "$REMOTE" 2>/dev/null)" \
-            --head "$cur" --base "$MAIN_BRANCH" --fill 2>>"$REPORT" || true)"
-          if [ -n "$_pr_url" ]; then
-            printf -- '- %s\n' "$_pr_url" >> "$_pr_log"
-            log "opened PR: $_pr_url"
-            # Auto-merge (David opted in): back-pressure already passed → green.
-            if gh pr merge "$_pr_url" --squash --delete-branch --auto >>"$REPORT" 2>&1 \
-               || gh pr merge "$_pr_url" --squash --delete-branch >>"$REPORT" 2>&1; then
-              log "auto-merged (squash): $_pr_url"
-              git -C "$REPO" checkout "$MAIN_BRANCH" >>"$REPORT" 2>&1 || true
-              git -C "$REPO" pull --ff-only "$REMOTE" "$MAIN_BRANCH" >>"$REPORT" 2>&1 || true
-            else
-              log "warn: auto-merge failed for $_pr_url — leaving it open for manual merge"
-            fi
-          else
-            log "warn: gh pr create failed for $cur (open it manually)"
-          fi
-        else
-          log "gh not installed — branch $cur pushed; open the PR manually"
-        fi
-      fi
-      # spec-mode: the agent commits draft specs to main; push them so they're reviewable.
-      if [ "$MODE" = "spec" ] && [ "$cur" = "$MAIN_BRANCH" ]; then
-        git -C "$REPO" push "$REMOTE" "$MAIN_BRANCH" >>"$REPORT" 2>&1 \
-          && log "pushed spec commit(s) to $REMOTE/$MAIN_BRANCH" || log "warn: push of $MAIN_BRANCH failed"
-      fi
-    else
-      log "iter $i — back-pressure FAILED; resetting to $TAG"
+    if [ "$rc" -ne 0 ]; then
+      log "iter $i — claude exited $rc; resetting to $TAG"
       git -C "$REPO" reset --hard "$TAG" >/dev/null 2>&1 || true
       fails=$((fails+1))
-    fi
-  fi
-
-  if [ "$fails" -ge "$MAX_CONSEC_FAILURES" ]; then
-    log "hit $fails consecutive failures (limit $MAX_CONSEC_FAILURES) — stopping the night"
-    break
-  fi
-done
-if [ "$fails" -ge "$MAX_CONSEC_FAILURES" ]; then _exit_rc=1; fi
-
-# ---------------------------------------------------------------------------
-# Wrap up
-# ---------------------------------------------------------------------------
-if [ "$DRY_RUN" -eq 0 ]; then
-  {
-    echo
-    echo "## Summary"
-    echo "- iterations attempted: $did"
-    echo "- consecutive failures at stop: $fails"
-    echo "- mode: $MODE"
-    echo "- session cost this run: \$${session_cost_total}"
-    if command -v jq >/dev/null 2>&1 && [ -f "$STATE" ]; then
-      _run_cost=$(jq -r --arg ts "$TS" \
-        '[.runs[] | select(.ts == $ts) | .cost_usd] | add // empty' \
-        "$STATE" 2>/dev/null || true)
-      [ -n "$_run_cost" ] && echo "- cost_usd: $_run_cost"
-    fi
-    if [ "$MODE" = "implement" ]; then
-      echo "- branches with un-merged PRs (review + merge these):"
-      git -C "$REPO" branch --no-merged "$MAIN_BRANCH" 2>/dev/null | sed 's/^/  - /' || true
-    fi
-    echo
-    echo "Triage: review the PR(s) above; approve good draft specs by adding their filename to specs/approved.txt."
-  } >> "$REPORT"
-  {
-    echo
-    echo "## Action required"
-    _found_unapproved=0
-    for _spec_f in "$REPO/specs/"*.md; do
-      [ -f "$_spec_f" ] || continue
-      _spec_name="$(basename "$_spec_f")"
-      [ "$_spec_name" = "README.md" ] && continue
-      if ! grep -qxF "$_spec_name" "$REPO/specs/approved.txt" 2>/dev/null; then
-        if [ "$_found_unapproved" -eq 0 ]; then
-          echo "Draft specs awaiting approval:"
-          _found_unapproved=1
-        fi
-        echo "- $_spec_name"
-      fi
-    done
-    [ "$_found_unapproved" -eq 0 ] && echo "All specs approved (none awaiting approval)."
-    echo
-    echo "## PRs opened"
-    if [ -s "$_pr_log" ]; then
-      cat "$_pr_log"
     else
-      echo "(none this run)"
+      log "iter $i — running back-pressure: $TEST_CMD"
+      if ( cd "$REPO" && eval "$TEST_CMD" ) >>"$REPORT" 2>&1; then
+        log "iter $i — back-pressure PASSED (cost this iter: \$${iter_cost})"
+        fails=0
+        # Record iteration cost in state.json
+        if [ -f "$STATE" ] && command -v jq >/dev/null 2>&1; then
+          jq --arg ts "$TS" --arg mode "$MODE" --argjson iter "$i" \
+             --argjson fails "$fails" --argjson cost "${iter_cost}" \
+             '.runs += [{"ts":$ts,"mode":$mode,"iter":$iter,"fails":$fails,"cost_usd":$cost}]' \
+             "$STATE" > "${STATE}.tmp" && mv "${STATE}.tmp" "$STATE" || true
+        fi
+        # Per-iteration diff stat
+        if git -C "$REPO" rev-parse HEAD~1 >/dev/null 2>&1; then
+          { echo; echo "### Diff (iter $i)"; git -C "$REPO" diff --stat HEAD~1 HEAD 2>/dev/null || true; } >> "$REPORT"
+        fi
+        # implement-mode: if the agent created a branch and committed, push it and open a PR. Never merge.
+        local cur
+        cur="$(git -C "$REPO" rev-parse --abbrev-ref HEAD)"
+        if [ "$MODE" = "implement" ] && [ "$cur" != "$MAIN_BRANCH" ]; then
+          git -C "$REPO" push -u "$REMOTE" "$cur" >>"$REPORT" 2>&1 || log "warn: push failed for $cur"
+          if command -v gh >/dev/null 2>&1; then
+            local _pr_url
+            _pr_url="$(gh pr create --repo "$(git -C "$REPO" remote get-url "$REMOTE" 2>/dev/null)" \
+              --head "$cur" --base "$MAIN_BRANCH" --fill 2>>"$REPORT" || true)"
+            if [ -n "$_pr_url" ]; then
+              printf -- '- %s\n' "$_pr_url" >> "$_pr_log"
+              log "opened PR: $_pr_url"
+              # Auto-merge (David opted in): back-pressure already passed → green.
+              if gh pr merge "$_pr_url" --squash --delete-branch --auto >>"$REPORT" 2>&1 \
+                 || gh pr merge "$_pr_url" --squash --delete-branch >>"$REPORT" 2>&1; then
+                log "auto-merged (squash): $_pr_url"
+                git -C "$REPO" checkout "$MAIN_BRANCH" >>"$REPORT" 2>&1 || true
+                git -C "$REPO" pull --ff-only "$REMOTE" "$MAIN_BRANCH" >>"$REPORT" 2>&1 || true
+              else
+                log "warn: auto-merge failed for $_pr_url — leaving it open for manual merge"
+              fi
+            else
+              log "warn: gh pr create failed for $cur (open it manually)"
+            fi
+          else
+            log "gh not installed — branch $cur pushed; open the PR manually"
+          fi
+        fi
+        # spec-mode: the agent commits draft specs to main; push them so they're reviewable.
+        if [ "$MODE" = "spec" ] && [ "$cur" = "$MAIN_BRANCH" ]; then
+          git -C "$REPO" push "$REMOTE" "$MAIN_BRANCH" >>"$REPORT" 2>&1 \
+            && log "pushed spec commit(s) to $REMOTE/$MAIN_BRANCH" || log "warn: push of $MAIN_BRANCH failed"
+        fi
+      else
+        log "iter $i — back-pressure FAILED; resetting to $TAG"
+        git -C "$REPO" reset --hard "$TAG" >/dev/null 2>&1 || true
+        fails=$((fails+1))
+      fi
     fi
-  } >> "$REPORT"
-  log "report written: $REPORT"
-  [ -f "$STATE" ] || echo '{"schema":1,"runs":[]}' > "$STATE"
-  prune_old_tags
-fi
 
-rm -f "$_pr_log" 2>/dev/null || true
-log "done."
-notify_done "$did iters | $fails failed | est \$${session_cost_total} | report: $(basename "$REPORT")"
-exit "$_exit_rc"
+    if [ "$fails" -ge "$MAX_CONSEC_FAILURES" ]; then
+      log "hit $fails consecutive failures (limit $MAX_CONSEC_FAILURES) — stopping the night"
+      break
+    fi
+  done
+  if [ "$fails" -ge "$MAX_CONSEC_FAILURES" ]; then _exit_rc=1; fi
+
+  # ---------------------------------------------------------------------------
+  # Wrap up
+  # ---------------------------------------------------------------------------
+  if [ "$DRY_RUN" -eq 0 ]; then
+    {
+      echo
+      echo "## Summary"
+      echo "- iterations attempted: $did"
+      echo "- consecutive failures at stop: $fails"
+      echo "- mode: $MODE"
+      echo "- session cost this run: \$${session_cost_total}"
+      if command -v jq >/dev/null 2>&1 && [ -f "$STATE" ]; then
+        local _run_cost
+        _run_cost=$(jq -r --arg ts "$TS" \
+          '[.runs[] | select(.ts == $ts) | .cost_usd] | add // empty' \
+          "$STATE" 2>/dev/null || true)
+        [ -n "$_run_cost" ] && echo "- cost_usd: $_run_cost"
+      fi
+      if [ "$MODE" = "implement" ]; then
+        echo "- branches with un-merged PRs (review + merge these):"
+        git -C "$REPO" branch --no-merged "$MAIN_BRANCH" 2>/dev/null | sed 's/^/  - /' || true
+      fi
+      echo
+      echo "Triage: review the PR(s) above; approve good draft specs by adding their filename to specs/approved.txt."
+    } >> "$REPORT"
+    {
+      echo
+      echo "## Action required"
+      local _found_unapproved=0 _spec_f _spec_name
+      for _spec_f in "$REPO/specs/"*.md; do
+        [ -f "$_spec_f" ] || continue
+        _spec_name="$(basename "$_spec_f")"
+        [ "$_spec_name" = "README.md" ] && continue
+        if ! grep -qxF "$_spec_name" "$REPO/specs/approved.txt" 2>/dev/null; then
+          if [ "$_found_unapproved" -eq 0 ]; then
+            echo "Draft specs awaiting approval:"
+            _found_unapproved=1
+          fi
+          echo "- $_spec_name"
+        fi
+      done
+      [ "$_found_unapproved" -eq 0 ] && echo "All specs approved (none awaiting approval)."
+      echo
+      echo "## PRs opened"
+      if [ -s "$_pr_log" ]; then
+        cat "$_pr_log"
+      else
+        echo "(none this run)"
+      fi
+    } >> "$REPORT"
+    log "report written: $REPORT"
+    [ -f "$STATE" ] || echo '{"schema":1,"runs":[]}' > "$STATE"
+    prune_old_tags
+  fi
+
+  rm -f "$_pr_log" 2>/dev/null || true
+  log "done."
+  notify_done "$did iters | $fails failed | est \$${session_cost_total} | report: $(basename "$REPORT")"
+  return "$_exit_rc"
+}
+
+# ---------------------------------------------------------------------------
+# Main entry: multi-project or single-env
+# ---------------------------------------------------------------------------
+if [ -n "$PROJECTS_DIR" ]; then
+  if [ ! -d "$PROJECTS_DIR" ]; then
+    echo "projects dir not found: $PROJECTS_DIR" >&2
+    exit 2
+  fi
+
+  # Shared time budget across all projects.
+  : "${TIME_BUDGET_SECONDS:=10800}"
+  DEADLINE=$(( $(date +%s) + TIME_BUDGET_SECONDS ))
+
+  _multi_exit=0
+  _outer_ts="$(date +%Y%m%d-%H%M%S)"
+  _outer_report="$HERE/reports/${_outer_ts}-multi-project-summary.md"
+
+  if [ "$DRY_RUN" -eq 0 ]; then
+    mkdir -p "$HERE/reports"
+    { echo "# ralph multi-project summary — $_outer_ts"; echo; echo "## Projects"; } > "$_outer_report"
+  fi
+
+  for _penv in "$PROJECTS_DIR"/*.env; do
+    [ -f "$_penv" ] || continue
+    case "$_penv" in *.disabled) continue ;; esac
+    run_project "$_penv" || _multi_exit=$?
+    if [ "$DRY_RUN" -eq 0 ]; then
+      printf -- '- %s: done\n' "$(basename "$_penv")" >> "$_outer_report"
+    fi
+  done
+
+  if [ "$DRY_RUN" -eq 0 ]; then
+    { echo; echo "All projects processed."; } >> "$_outer_report"
+    echo "$(date +%H:%M:%S)  multi-project summary: $_outer_report"
+  fi
+  exit "$_multi_exit"
+else
+  if [ ! -f "$ENV_FILE" ]; then
+    echo "no env file at $ENV_FILE — copy ralph.env.example to ralph.env and edit it" >&2
+    exit 2
+  fi
+  run_project "$ENV_FILE"
+  exit $?
+fi

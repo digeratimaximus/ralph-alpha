@@ -624,3 +624,365 @@ Found `system/self-build` branch already existed with all five Progress checkbox
 Updated spec status from `draft` to `approved → implemented`. Opened PR.
 
 Next iteration should verify `system/allowlist` (item 2) — branch `system/allowlist` already exists.
+
+## 2026-06-09 — implement: all approved items already shipped (MODE=implement, Ralph loop)
+
+`specs/approved.txt` contains three filenames: `feature-regression-harness.md`,
+`system-tag-prune.md`, `feature-notification.md`. All three have all Progress checkboxes
+checked and their branches are already merged to main (confirmed via git log: commits
+11e7052, b6132ac, 2a98c2c). No approved item has unchecked Progress checkboxes.
+
+Loop is blocked on human approval gate — to unblock, add at least one filename to
+`specs/approved.txt` for an item that has remaining unchecked Progress work. Remaining
+unshipped items:
+  system-launchd-install.md  (item 3)
+  feature-morning-report.md  (item 4)
+  system-cost-tracking.md    (item 5)
+  system-multi-project.md    (item 6 — approve last, full ralph.sh refactor)
+
+## 2026-06-09 (second run) — implement: all approved items already shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains three filenames: `feature-regression-harness.md`,
+`system-tag-prune.md`, `feature-notification.md`. All three have all Progress checkboxes
+checked and are confirmed merged to main (git log shows commits ca1e73f, 11e7052, b6132ac,
+2a98c2c). No approved item has unchecked Progress checkboxes — nothing left to implement.
+
+`./ralph.sh --self-test` passes on main (exits 0).
+
+To unblock: add at least one filename to `specs/approved.txt` for an item with remaining
+work. Remaining unshipped items (in suggested approval order):
+  system-launchd-install.md  (item 3)
+  feature-morning-report.md  (item 4)
+  system-cost-tracking.md    (item 5, approve before item 4)
+  system-multi-project.md    (item 6 — approve last, full ralph.sh refactor)
+
+## 2026-06-09 (third run) — implement: all approved items already shipped, loop blocked on human approval gate
+
+`specs/approved.txt` still contains only `feature-regression-harness.md`,
+`system-tag-prune.md`, and `feature-notification.md`. All three are fully implemented and
+merged. No approved item has unchecked Progress checkboxes — nothing to do this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — approve after system-cost-tracking)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-10 — implement: all approved items already shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains three filenames: `feature-regression-harness.md`,
+`system-tag-prune.md`, `feature-notification.md`. All three have all Progress checkboxes
+checked and are confirmed shipped (no unchecked `- [ ]` in any of those spec files).
+No approved item has remaining work — nothing to implement this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — approve after system-cost-tracking)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-10 (second run) — implement: all approved items already shipped, loop blocked on human approval gate
+
+`specs/approved.txt` still contains only `feature-regression-harness.md`,
+`system-tag-prune.md`, and `feature-notification.md`. All three confirmed shipped —
+grep for `- [ ]` in those spec files returns nothing. Specs with unchecked work
+(`system-launchd-install.md`, `system-multi-project.md`, `feature-self-build.md`)
+are not in `specs/approved.txt`.
+
+To unblock: add at least one filename to `specs/approved.txt` for an item with
+remaining work. Suggested approval order (from specs/README.md):
+  system-launchd-install.md  (item 3 — independent, safe now)
+  system-cost-tracking.md    (item 5 — approve before item 4)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-10 (third run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains three filenames: `feature-regression-harness.md`,
+`system-tag-prune.md`, `feature-notification.md`. All three have all Progress checkboxes
+checked and are confirmed shipped. Verified via grep: the only remaining `- [ ]` items are in
+non-approved specs (`system-multi-project.md`, `system-launchd-install.md`, and the
+superseded `feature-self-build.md`).
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, one manual-only checkbox remains)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-11 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains three filenames: `feature-regression-harness.md`,
+`system-tag-prune.md`, `feature-notification.md`. All three confirmed shipped — grep for
+`- [ ]` in each returns nothing. No approved item has remaining work.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-11 (second run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` still contains only `feature-regression-harness.md`,
+`system-tag-prune.md`, and `feature-notification.md`. All three confirmed shipped — no
+unchecked `- [ ]` items remain in any of those spec files. No approved item has remaining work.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-11 (third run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` still contains only `feature-regression-harness.md`,
+`system-tag-prune.md`, and `feature-notification.md`. All three confirmed shipped — grep
+for `- [ ]` in those spec files returns no matches. No approved item has remaining work.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-12 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains three filenames: `feature-regression-harness.md`,
+`system-tag-prune.md`, `feature-notification.md`. All three confirmed shipped — grep for
+`- [ ]` in those spec files returns no matches. No approved item has remaining work.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-12 (second run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` still contains only `feature-regression-harness.md`,
+`system-tag-prune.md`, and `feature-notification.md`. All three confirmed shipped —
+grep for `- [ ]` returns zero matches in all three spec files. No approved item has
+remaining work to do this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-12 (third run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains only `feature-regression-harness.md`,
+`system-tag-prune.md`, and `feature-notification.md`. All three confirmed shipped —
+grep for `- [ ]` in those spec files returns no matches. No approved item has
+remaining work.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-13 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains only `feature-regression-harness.md`, `system-tag-prune.md`,
+and `feature-notification.md`. All three confirmed shipped — grep for `- [ ]` in those spec
+files returns no matches. No approved item has remaining work.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-13 (second run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` still contains only `feature-regression-harness.md`,
+`system-tag-prune.md`, and `feature-notification.md`. All three confirmed shipped —
+grep for `- [ ]` returns no matches in any of those spec files. No approved item has
+remaining work this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-13 (third run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` still contains only `feature-regression-harness.md`,
+`system-tag-prune.md`, and `feature-notification.md`. All three confirmed shipped —
+grep for `- [ ]` returns no matches in any of those spec files. No approved item has
+remaining work this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-14 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains only `feature-regression-harness.md`, `system-tag-prune.md`,
+and `feature-notification.md`. All three confirmed shipped — grep for `- [ ]` in those spec
+files returns no matches. No approved item has remaining work.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-14 (second run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` still contains only `feature-regression-harness.md`,
+`system-tag-prune.md`, and `feature-notification.md`. All three confirmed shipped —
+no unchecked `- [ ]` items in any of those spec files. No approved item has remaining work.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-14 (third run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` unchanged: `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md` — all shipped, no unchecked work. Loop cannot proceed.
+
+To unblock: add at least one filename to `specs/approved.txt` (suggested: `system-launchd-install.md`).
+
+## 2026-06-15 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` unchanged: `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md` — all shipped, no unchecked work. Loop cannot proceed.
+
+To unblock: add at least one filename to `specs/approved.txt`. Suggested:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-15 (second run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` unchanged: `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md` — all shipped, no unchecked `- [ ]` items in any of those spec
+files. No approved item has remaining work this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-15 (third run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` unchanged: `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md` — all shipped, no unchecked `- [ ]` items in any of those spec
+files. No approved item has remaining work this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-16 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` unchanged: `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md` — all shipped, no unchecked `- [ ]` items in any of those spec
+files. No approved item has remaining work this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-16 (second run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` unchanged: `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md` — all shipped, no unchecked `- [ ]` items in any of those spec
+files. No approved item has remaining work this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-16 (third run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` unchanged: `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md` — all shipped, no unchecked `- [ ]` items in any of those spec
+files. No approved item has remaining work this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-17 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` unchanged: `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md` — all shipped, no unchecked `- [ ]` items in any of those spec
+files. No approved item has remaining work this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-17 (second run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` unchanged: `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md` — all shipped, no unchecked `- [ ]` items in any of those spec
+files. No approved item has remaining work this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-17 (third run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` unchanged: `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md` — all shipped, no unchecked `- [ ]` items in any of those spec
+files. No approved item has remaining work this iteration.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+  system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-18 — implement: system-multi-project (branch: system/multi-project)
+
+Item 6 from the backlog (`system-multi-project.md`). Implemented all 7 tasks from the spec.
+
+Key changes in `ralph.sh`:
+- Extracted `run_project()` function wrapping the entire single-env body (load config →
+  wrap-up). Takes an env-file path as its only argument; unsets per-project vars before
+  sourcing so defaults apply cleanly on each call.
+- Added `--projects-dir <dir>` flag. In multi-project mode: sets shared `DEADLINE` once,
+  iterates `*.env` files in sorted order (skipping `*.disabled`), calls `run_project()` per
+  project, and writes an outer `reports/<ts>-multi-project-summary.md`.
+- In single-env mode: calls `run_project "$ENV_FILE"` — identical behaviour to before.
+- `log "[project] ..."` emitted after REPORT is set (not before) to avoid set -u nounset
+  failure when REPORT is unset on the first call.
+- Added `--self-test` assertion: if `projects.d/` exists, each `*.env` file is checked with
+  `bash -n`.
+- Added `# Multi-project support` comment block to `ralph.env.example`.
+- Updated usage comment at top of `ralph.sh` to document `--projects-dir`.
+
+`./ralph.sh --self-test` exits 0 (all assertions pass including regression-test).
+
+Watch-outs for the human reviewer:
+- All existing self-test assertions continue to pass; the refactor is transparent for single-env.
+- `projects.d/` is NOT gitignored (not in scope for this spec); add it if you want local
+  env files out of git.
+- Manual dry-run verification requires creating a `projects.d/test-a.env` locally — not committed.
