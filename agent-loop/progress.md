@@ -986,3 +986,19 @@ Watch-outs for the human reviewer:
 - `projects.d/` is NOT gitignored (not in scope for this spec); add it if you want local
   env files out of git.
 - Manual dry-run verification requires creating a `projects.d/test-a.env` locally — not committed.
+
+## 2026-06-18 (second run) — implement: opened PR for system-multi-project
+
+Previous iteration committed `79e1fdb implement: multi-project support (--projects-dir)` and
+pushed `system/multi-project` to origin but did not open the PR. This iteration verified
+`./ralph.sh --self-test` still exits 0 (all assertions pass) and opened PR #11:
+https://github.com/digeratimaximus/ralph-alpha/pull/11
+
+All approved items (`feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md`, `system-multi-project.md`) now have all Progress checkboxes
+checked and open PRs. Loop is blocked on human review — merge the open PRs to unblock.
+
+Remaining unimplemented items (not yet in `specs/approved.txt`):
+  system-launchd-install.md  (item 3 — independent, safe to approve)
+  feature-morning-report.md  (item 4 — approve after system-cost-tracking)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
