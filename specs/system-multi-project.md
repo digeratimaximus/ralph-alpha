@@ -1,6 +1,6 @@
 # Multi-project support
 
-status: draft
+status: approved → implemented
 
 ## What
 
@@ -43,10 +43,10 @@ Extend `--self-test`: if `projects.d/` exists and contains `*.env` files, verify
 
 ## Progress
 
-- [ ] Extract `run_project()` from current single-env body
-- [ ] Add `--projects-dir` flag parsing; iterate `*.env` (skip `*.disabled`)
-- [ ] Set shared `DEADLINE` once before the outer loop
-- [ ] Write outer summary section to top-level report
-- [ ] Extend `--self-test` for projects.d/ validation
-- [ ] Add multi-project comment block to `ralph.env.example`
-- [ ] Update `specs/README.md` and `agent-loop/progress.md`
+- [x] Extract `run_project()` from current single-env body
+- [x] Add `--projects-dir` flag parsing; iterate `*.env` (skip `*.disabled`)
+- [x] Set shared `DEADLINE` once before the outer loop
+- [x] Write outer summary section to top-level report
+- [x] Extend `--self-test` for projects.d/ validation
+- [x] Add multi-project comment block to `ralph.env.example`
+- [x] Update `specs/README.md` and `agent-loop/progress.md`

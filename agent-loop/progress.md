@@ -959,3 +959,30 @@ To unblock: add at least one of the following to `specs/approved.txt`:
   system-cost-tracking.md    (item 5 — approve before feature-morning-report)
   feature-morning-report.md  (item 4 — requires item 5 first)
   system-multi-project.md    (item 6 — approve last; full ralph.sh refactor)
+
+## 2026-06-18 — implement: system-multi-project (branch: system/multi-project)
+
+Item 6 from the backlog (`system-multi-project.md`). Implemented all 7 tasks from the spec.
+
+Key changes in `ralph.sh`:
+- Extracted `run_project()` function wrapping the entire single-env body (load config →
+  wrap-up). Takes an env-file path as its only argument; unsets per-project vars before
+  sourcing so defaults apply cleanly on each call.
+- Added `--projects-dir <dir>` flag. In multi-project mode: sets shared `DEADLINE` once,
+  iterates `*.env` files in sorted order (skipping `*.disabled`), calls `run_project()` per
+  project, and writes an outer `reports/<ts>-multi-project-summary.md`.
+- In single-env mode: calls `run_project "$ENV_FILE"` — identical behaviour to before.
+- `log "[project] ..."` emitted after REPORT is set (not before) to avoid set -u nounset
+  failure when REPORT is unset on the first call.
+- Added `--self-test` assertion: if `projects.d/` exists, each `*.env` file is checked with
+  `bash -n`.
+- Added `# Multi-project support` comment block to `ralph.env.example`.
+- Updated usage comment at top of `ralph.sh` to document `--projects-dir`.
+
+`./ralph.sh --self-test` exits 0 (all assertions pass including regression-test).
+
+Watch-outs for the human reviewer:
+- All existing self-test assertions continue to pass; the refactor is transparent for single-env.
+- `projects.d/` is NOT gitignored (not in scope for this spec); add it if you want local
+  env files out of git.
+- Manual dry-run verification requires creating a `projects.d/test-a.env` locally — not committed.
