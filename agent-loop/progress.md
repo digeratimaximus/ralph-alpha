@@ -1002,3 +1002,14 @@ Remaining unimplemented items (not yet in `specs/approved.txt`):
   system-launchd-install.md  (item 3 — independent, safe to approve)
   feature-morning-report.md  (item 4 — approve after system-cost-tracking)
   system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+
+## 2026-06-18 (third run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md`, and `system-multi-project.md`. All four have all Progress checkboxes
+checked and open PRs. No approved item has remaining work.
+
+To unblock: merge the open PRs, then add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
