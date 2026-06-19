@@ -1013,3 +1013,15 @@ To unblock: merge the open PRs, then add at least one of the following to `specs
   system-launchd-install.md  (item 3 — independent, safe to approve now)
   system-cost-tracking.md    (item 5 — approve before feature-morning-report)
   feature-morning-report.md  (item 4 — requires item 5 first)
+
+## 2026-06-19 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md`, and `system-multi-project.md`. All four have all Progress checkboxes
+checked — verified via grep, no unchecked `- [ ]` items in any of those spec files. PR #11
+(`system-multi-project`) is open and awaiting human review.
+
+To unblock: merge the open PRs, then add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
