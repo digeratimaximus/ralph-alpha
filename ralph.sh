@@ -135,7 +135,8 @@ if [ "$SELF_TEST" -eq 1 ]; then
     [ "$_impl_main_pushed" -eq 1 ] && { echo "FAIL: implement-mode pushed main to remote"; ok=0; }
   fi
 
-  grep -q 'TodoWrite' "$HERE/ralph.sh"  || { echo "FAIL: TodoWrite missing from ALLOWED"; ok=0; }
+  grep -q 'CLAUDE_CODE_OAUTH_TOKEN' "$HERE/ralph.sh" || { echo "FAIL: headless OAuth token export missing (401 regression, 2026-06-23→07-02)"; ok=0; }
+  grep -q 'bypassPermissions' "$HERE/ralph.sh" || { echo "FAIL: bypassPermissions missing from claude invocation"; ok=0; }
   grep -q 'notify_done()' "$HERE/ralph.sh" || { echo "FAIL: notify_done() missing from ralph.sh"; ok=0; }
   bash -n "$HERE/install-launchd.sh" || { echo "FAIL: install-launchd.sh has a syntax error"; ok=0; }
   command -v shellcheck >/dev/null 2>&1 && { shellcheck -S warning "$HERE/install-launchd.sh" || { echo "FAIL: shellcheck install-launchd.sh"; ok=0; }; }
@@ -257,6 +258,15 @@ if [ -z "$CLAUDE_BIN" ]; then
   else echo "cannot find the 'claude' CLI — set CLAUDE_BIN in $ENV_FILE" >&2; exit 2; fi
 fi
 
+# Headless auth (same pattern as ted-morning-brief/run.sh): an unattended `claude -p`
+# under launchd reads the ambient Keychain login, which expires silently and 401s
+# every iteration (fleet-wide 401 on 2026-06-21; ralph dark 06-23→07-02).
+OAUTH_TOKEN_FILE="$HOME/.ted-secrets/claude-oauth.token"
+if [ -s "$OAUTH_TOKEN_FILE" ]; then
+  CLAUDE_CODE_OAUTH_TOKEN="$(tr -d '[:space:]' < "$OAUTH_TOKEN_FILE")"
+  export CLAUDE_CODE_OAUTH_TOKEN
+fi
+
 TS="$(date +%Y%m%d-%H%M%S)"
 REPORT="$HERE/reports/${TS}-$(basename "$REPO")-${MODE}.md"
 PROGRESS="$REPO/agent-loop/progress.md"
@@ -304,12 +314,13 @@ SYS_EXTRA="MODE=$MODE. This is one iteration of a Ralph loop. Do EXACTLY ONE bac
 do not start a second item. Read agent-loop/METHOD.md and specs/README.md and agent-loop/progress.md first. \
 Before concluding code does not exist, grep for it. No placeholder implementations."
 
-# Tool allowlist for the agent. Space-separated, Claude Code permission syntax.
-# Edits are auto-accepted (--permission-mode acceptEdits); these cover the Bash commands an iteration needs.
-# Anything not listed gets denied — that's the guardrail; the iteration adapts or fails and is rolled back.
-ALLOWED='Read Edit Write Grep Glob TodoWrite Bash(git *) Bash(./ralph.sh *) Bash(shellcheck *) Bash(bash -n *) Bash(ls *) Bash(cat *) Bash(rg *) Bash(gh pr *)'
+# Permissions: bypassPermissions (fleet pattern) — no tool prompt can ever block a
+# headless run. The guardrail is the global deny wall (permissions.deny in
+# ~/.claude/settings.json), which holds under bypass; plus per-iteration tag rollback.
+# Replaced the acceptEdits + ALLOWED allowlist 2026-07-02.
 
 ITER_LOG=""  # path to stream-json capture for current iteration; set by run_claude()
+ITER_ERR=""  # path to stderr capture for current iteration; set by run_claude()
 
 prune_old_tags() {
   local tags
@@ -326,21 +337,22 @@ prune_old_tags() {
 run_claude() {
   local n="$1"
   if [ "$DRY_RUN" -eq 1 ]; then
-    log "[dry-run] iter $n: would run: claude -p (PROMPT.md) --model $MODEL --permission-mode acceptEdits --allowed-tools '$ALLOWED' --max-budget-usd $MAX_BUDGET_USD --verbose --output-format stream-json"
+    log "[dry-run] iter $n: would run: claude -p (PROMPT.md) --model $MODEL --permission-mode bypassPermissions --max-budget-usd $MAX_BUDGET_USD --verbose --output-format stream-json"
     return 0
   fi
   ITER_LOG="$(mktemp)"
+  ITER_ERR="$(mktemp)"
   # `-p` + `--output-format stream-json` REQUIRES `--verbose`, or the CLI exits 1 at arg-parse
   # ("...stream-json requires --verbose") before any work runs — every iteration then fails and
   # the loop stops after MAX_CONSEC_FAILURES. Do not remove --verbose. (Regression seen 2026-06-02.)
   printf '%s\n' "$PROMPT_BODY" | "$CLAUDE_BIN" -p \
     --model "$MODEL" \
     --append-system-prompt "$SYS_EXTRA" \
-    --permission-mode acceptEdits \
-    --allowed-tools "$ALLOWED" \
+    --permission-mode bypassPermissions \
     --max-budget-usd "$MAX_BUDGET_USD" \
     --verbose \
     --output-format stream-json \
+    2>"$ITER_ERR" \
     | tee "$ITER_LOG"
 }
 
@@ -382,14 +394,20 @@ for i in $(seq 1 "$MAX_ITERS"); do
     _parsed=$(jq -r 'select(.type=="result") | .total_cost_usd // .cost_usd // 0' "$ITER_LOG" 2>/dev/null | tail -1)
     iter_cost="${_parsed:-0}"
     session_cost_total=$(awk "BEGIN{print $session_cost_total + $iter_cost}")
-    rm -f "$ITER_LOG"
-    ITER_LOG=""
   fi
 
   if [ "$DRY_RUN" -eq 1 ]; then continue; fi
 
   if [ "$rc" -ne 0 ]; then
-    log "iter $i — claude exited $rc; resetting to $TAG"
+    # Persist WHY into the report, not just the exit code — otherwise an auth failure
+    # (API Error: 401) is indistinguishable from a code failure (10 dark nights, 06-23→07-02).
+    _why=""
+    [ -n "$ITER_ERR" ] && [ -s "$ITER_ERR" ] && _why="$(tail -n 3 "$ITER_ERR" | tr '\n' ' ')"
+    if [ -z "$_why" ] && [ -n "$ITER_LOG" ] && [ -s "$ITER_LOG" ]; then
+      _why="$(grep -im1 'error' "$ITER_LOG" || tail -n 1 "$ITER_LOG")"
+    fi
+    _why="${_why:0:400}"
+    log "iter $i — claude exited $rc${_why:+ — $_why}; resetting to $TAG"
     git -C "$REPO" reset --hard "$TAG" >/dev/null 2>&1 || true
     fails=$((fails+1))
   else
@@ -445,6 +463,11 @@ for i in $(seq 1 "$MAX_ITERS"); do
       fails=$((fails+1))
     fi
   fi
+
+  # Iteration captures are consumed (cost + failure reason) — clean them up here,
+  # AFTER the failure branch, never before it.
+  rm -f "$ITER_LOG" "$ITER_ERR"
+  ITER_LOG=""; ITER_ERR=""
 
   if [ "$fails" -ge "$MAX_CONSEC_FAILURES" ]; then
     log "hit $fails consecutive failures (limit $MAX_CONSEC_FAILURES) — stopping the night"
