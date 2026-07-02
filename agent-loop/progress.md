@@ -986,3 +986,37 @@ Watch-outs for the human reviewer:
 - `projects.d/` is NOT gitignored (not in scope for this spec); add it if you want local
   env files out of git.
 - Manual dry-run verification requires creating a `projects.d/test-a.env` locally — not committed.
+
+## 2026-07-02 — fix: reconcile local/origin main divergence (branch: system/reconcile-divergence)
+
+Found repo in broken state: local `main` and `origin/main` had diverged.
+- `origin/main` had the multi-project merge (PR #10, 2026-06-18) but NOT the OAuth/bypassPermissions fix.
+- Local `main` had `ad124b9` (OAuth export + bypassPermissions + failure-reason persistence) but NOT
+  the multi-project refactor.
+- Root cause: PR #10 was merged into origin/main while local main had 31 "progress" commits that
+  were never pushed/reconciled; the 06-21 OAuth fix `a2d267f` landed on `system/multi-project` after
+  PR #10's branch cut and never reached origin/main.
+
+Fix: created `system/reconcile-divergence` from `origin/main` (which has multi-project) and applied
+the OAuth/bypassPermissions changes from `ad124b9` to `ralph.sh`:
+- Added headless OAuth token export (`CLAUDE_CODE_OAUTH_TOKEN` from `~/.ted-secrets/claude-oauth.token`)
+  inside `run_project()`, matching the fleet pattern.
+- Replaced `--permission-mode acceptEdits --allowed-tools ALLOWED` with `--permission-mode bypassPermissions`.
+  Removed the `ALLOWED` variable.
+- Added `ITER_ERR` stderr capture in `run_claude()` to persist failure reasons in the report.
+- Added `_why` logic in the failure branch: tail stderr / grep ITER_LOG for the first error line,
+  append to the log message so auth failures (401) are distinguishable from code failures.
+- Moved `rm -f ITER_LOG ITER_ERR` cleanup to after the failure branch (not inside cost-parsing block)
+  so ITER_ERR is still readable when the failure handler runs.
+- Updated `--self-test` assertions: replaced `TodoWrite in ALLOWED` check with `CLAUDE_CODE_OAUTH_TOKEN`
+  and `bypassPermissions` presence checks.
+
+`./ralph.sh --self-test` exits 0 (regression-test OK, self-test OK).
+
+Watch-outs for the human reviewer:
+- This PR reconciles the divergence. Merging it to main replaces origin/main with the fully combined
+  state: multi-project support + OAuth fix + bypassPermissions + failure-reason logging.
+- Local `main` (with just the OAuth fix, no multi-project) becomes stale after this merge — the
+  launchd job should pull main after merging.
+- The `ALLOWED` variable and `TodoWrite` self-test assertion are gone; bypassPermissions + the global
+  deny wall is the new guardrail.
