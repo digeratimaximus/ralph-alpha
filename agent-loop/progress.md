@@ -986,3 +986,75 @@ Watch-outs for the human reviewer:
 - `projects.d/` is NOT gitignored (not in scope for this spec); add it if you want local
   env files out of git.
 - Manual dry-run verification requires creating a `projects.d/test-a.env` locally — not committed.
+
+## 2026-07-02 — fix: reconcile local/origin main divergence (branch: system/reconcile-divergence)
+
+Found repo in broken state: local `main` and `origin/main` had diverged.
+- `origin/main` had the multi-project merge (PR #10, 2026-06-18) but NOT the OAuth/bypassPermissions fix.
+- Local `main` had `ad124b9` (OAuth export + bypassPermissions + failure-reason persistence) but NOT
+  the multi-project refactor.
+- Root cause: PR #10 was merged into origin/main while local main had 31 "progress" commits that
+  were never pushed/reconciled; the 06-21 OAuth fix `a2d267f` landed on `system/multi-project` after
+  PR #10's branch cut and never reached origin/main.
+
+Fix: created `system/reconcile-divergence` from `origin/main` (which has multi-project) and applied
+the OAuth/bypassPermissions changes from `ad124b9` to `ralph.sh`:
+- Added headless OAuth token export (`CLAUDE_CODE_OAUTH_TOKEN` from `~/.ted-secrets/claude-oauth.token`)
+  inside `run_project()`, matching the fleet pattern.
+- Replaced `--permission-mode acceptEdits --allowed-tools ALLOWED` with `--permission-mode bypassPermissions`.
+  Removed the `ALLOWED` variable.
+- Added `ITER_ERR` stderr capture in `run_claude()` to persist failure reasons in the report.
+- Added `_why` logic in the failure branch: tail stderr / grep ITER_LOG for the first error line,
+  append to the log message so auth failures (401) are distinguishable from code failures.
+- Moved `rm -f ITER_LOG ITER_ERR` cleanup to after the failure branch (not inside cost-parsing block)
+  so ITER_ERR is still readable when the failure handler runs.
+- Updated `--self-test` assertions: replaced `TodoWrite in ALLOWED` check with `CLAUDE_CODE_OAUTH_TOKEN`
+  and `bypassPermissions` presence checks.
+
+`./ralph.sh --self-test` exits 0 (regression-test OK, self-test OK).
+
+Watch-outs for the human reviewer:
+- This PR reconciles the divergence. Merging it to main replaces origin/main with the fully combined
+  state: multi-project support + OAuth fix + bypassPermissions + failure-reason logging.
+- Local `main` (with just the OAuth fix, no multi-project) becomes stale after this merge — the
+  launchd job should pull main after merging.
+- The `ALLOWED` variable and `TodoWrite` self-test assertion are gone; bypassPermissions + the global
+  deny wall is the new guardrail.
+
+## 2026-07-03 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains four filenames: `feature-regression-harness.md`,
+`system-tag-prune.md`, `feature-notification.md`, `system-multi-project.md`. All four have all
+Progress checkboxes checked — no approved item has remaining work.
+
+PR #12 (`system/reconcile-divergence`) is open and awaiting human review. Also committed the
+`state.json` run entry that was left unstaged from the previous iteration's ralph.sh execution.
+
+To unblock: merge PR #12, then add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+
+## 2026-07-03 (second run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` still contains only `feature-regression-harness.md`,
+`system-tag-prune.md`, `feature-notification.md`, `system-multi-project.md`. All four have all
+Progress checkboxes checked — no approved item has remaining work this iteration. `state.json`
+has a pending modification from ralph.sh execution (unstaged); not committed here (spec-only loop).
+
+To unblock: merge PR #12 (`system/reconcile-divergence`), then add at least one of:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
+
+## 2026-07-03 (third run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md`, `system-multi-project.md`. All four confirmed — grep for `- [ ]`
+returns no matches in any approved spec file. Committed pending `state.json` run entries from
+the 2026-07-03 ralph.sh execution. Loop cannot proceed without human action.
+
+To unblock: merge PR #12 (`system/reconcile-divergence`), then add at least one of:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
