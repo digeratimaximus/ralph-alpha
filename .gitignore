@@ -11,3 +11,6 @@ PAUSE
 
 # os cruft
 .DS_Store
+
+# local per-project env files (multi-project mode, --projects-dir)
+projects.d/
