@@ -1020,3 +1020,17 @@ Watch-outs for the human reviewer:
   launchd job should pull main after merging.
 - The `ALLOWED` variable and `TodoWrite` self-test assertion are gone; bypassPermissions + the global
   deny wall is the new guardrail.
+
+## 2026-07-03 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains four filenames: `feature-regression-harness.md`,
+`system-tag-prune.md`, `feature-notification.md`, `system-multi-project.md`. All four have all
+Progress checkboxes checked — no approved item has remaining work.
+
+PR #12 (`system/reconcile-divergence`) is open and awaiting human review. Also committed the
+`state.json` run entry that was left unstaged from the previous iteration's ralph.sh execution.
+
+To unblock: merge PR #12, then add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
