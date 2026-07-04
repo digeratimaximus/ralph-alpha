@@ -1058,3 +1058,14 @@ To unblock: merge PR #12 (`system/reconcile-divergence`), then add at least one 
   system-launchd-install.md  (item 3 — independent, safe to approve now)
   system-cost-tracking.md    (item 5 — approve before feature-morning-report)
   feature-morning-report.md  (item 4 — requires item 5 first)
+
+## 2026-07-04 — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` contains `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md`, `system-multi-project.md`. All four confirmed shipped — grep for
+`- [ ]` returns no matches in any approved spec file. No approved item has remaining work.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
