@@ -1069,3 +1069,15 @@ To unblock: add at least one of the following to `specs/approved.txt`:
   system-launchd-install.md  (item 3 — independent, safe to approve now)
   system-cost-tracking.md    (item 5 — approve before feature-morning-report)
   feature-morning-report.md  (item 4 — requires item 5 first)
+
+## 2026-07-04 (second run) — implement: all approved items shipped, loop blocked on human approval gate
+
+`specs/approved.txt` still contains only `feature-regression-harness.md`, `system-tag-prune.md`,
+`feature-notification.md`, `system-multi-project.md`. All four confirmed shipped — grep for
+`- [ ]` returns no matches in any approved spec file. No approved item has remaining work this iteration.
+Committed pending `state.json` run entry from the current ralph.sh execution.
+
+To unblock: add at least one of the following to `specs/approved.txt`:
+  system-launchd-install.md  (item 3 — independent, safe to approve now)
+  system-cost-tracking.md    (item 5 — approve before feature-morning-report)
+  feature-morning-report.md  (item 4 — requires item 5 first)
